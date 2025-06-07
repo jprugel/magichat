@@ -15,7 +15,7 @@ use login::Login;
 fn main() -> iced::Result {
     iced::application(App::new, App::update, App::view)
         .window(App::window())
-        .subscription(App::subscription)
+        //.subscription(App::subscription)
         .run()
 }
 
@@ -82,7 +82,11 @@ impl App {
             Message::Login(login::Message::Submitted) => {
                 // Do login logic here.
                 self.screen = Screen::Chat;
-                Task::none()
+                Task::sip(
+                    websocket::connect(self.login.url.clone()), 
+                    |event| Message::Websocket(event),
+                    |_| Message::Websocket(websocket::Event::Disconnected)
+                )
             }
             Message::Chat(chat::Message::UserUpdated(msg)) => {
                 self.chat.written_text = msg;
@@ -126,11 +130,7 @@ impl App {
 
     fn subscription(&self) -> Subscription<Message> {
         let url = self.login.url.clone();
-        if !self.login.submitted { return Subscription::none() }
-        match url::Url::parse(&url) {
-            Ok(_) => Subscription::run_with(url, |url| websocket::connect(url.to_string()).map(Message::Websocket)),
-            Err(_) => Subscription::none(),
-        }
+        Subscription::run_with(url, |url| websocket::connect(url.to_string()).map(Message::Websocket))
     }
 }
 
