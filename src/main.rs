@@ -3,10 +3,8 @@ mod login;
 mod websocket;
 
 use chat::Chat;
-use futures::StreamExt;
 use iced::Element;
 use iced::Length;
-use iced::Subscription;
 use iced::alignment::*;
 use iced::task::Task;
 use iced::widget::*;
@@ -16,6 +14,7 @@ fn main() -> iced::Result {
     iced::application(App::new, App::update, App::view)
         .window(App::window())
         //.subscription(App::subscription)
+        .settings(App::settings())
         .run()
 }
 
@@ -45,16 +44,31 @@ impl App {
         settings
     }
 
+    fn settings() -> iced::Settings {
+        let font = iced::Font::with_name("JetBrainsMonoNLNerdFont-Regular");
+
+        iced::Settings {
+            default_font: font,
+            ..Default::default()
+        }
+    }
+
     fn new() -> (Self, Task<Message>) {
-        (
-            Self {
-                screen: Screen::Login,
-                login: Login::default(),
-                chat: Chat::default(),
-                state: State::Disconnected,
-            },
-            Task::none(),
-        )
+        let load_font = |data: &'static [u8]| iced::font::load(data).map(Message::FontLoaded);
+
+        let task = Task::batch(vec![
+            load_font(include_bytes!("../fonts/JetBrainsMonoNLNerdFont-Regular.ttf")),
+        ]);
+
+
+        let app = Self {
+            screen: Screen::Login,
+            login: Login::default(),
+            chat: Chat::default(),
+            state: State::Disconnected,
+        };
+
+        (app, task)
     }
 
     fn view(&self) -> Element<Message> {
@@ -71,6 +85,10 @@ impl App {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::FontLoaded(_) => {
+                dbg!("Fonts loaded.");
+                Task::none()
+            },
             Message::Login(login::Message::UpdatedUsername(username)) => {
                 self.login.username = username;
                 Task::none()
@@ -110,7 +128,6 @@ impl App {
                 self.chat.written_text.clear();
                 Task::none()
             }
-            Message::Chat(_) => Task::none(),
             Message::Websocket(websocket::Event::Connected(connection)) => {
                 dbg!("websocket::connected");
                 self.state = State::Connected(connection);
@@ -127,11 +144,6 @@ impl App {
             }
         }
     }
-
-    fn subscription(&self) -> Subscription<Message> {
-        let url = self.login.url.clone();
-        Subscription::run_with(url, |url| websocket::connect(url.to_string()).map(Message::Websocket))
-    }
 }
 
 enum Screen {
@@ -141,6 +153,7 @@ enum Screen {
 
 #[derive(Debug, Clone)]
 enum Message {
+    FontLoaded(Result<(), iced::font::Error>),
     Login(login::Message),
     Chat(chat::Message),
     Websocket(websocket::Event),

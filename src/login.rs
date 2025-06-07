@@ -15,7 +15,6 @@ pub enum Message {
 pub struct Login {
     pub username: String,
     pub url: String,
-    pub submitted: bool,
 }
 
 pub fn view(login: &Login) -> Element<Message> {
