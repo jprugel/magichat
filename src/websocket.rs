@@ -6,57 +6,81 @@ use futures::channel::mpsc;
 use futures::sink::SinkExt;
 use futures::stream::StreamExt;
 
+use crate::server_info::*;
 use async_tungstenite::tungstenite;
 use std::fmt;
 
 pub fn connect(url: String) -> impl Sipper<Never, Event> {
     sipper(async move |mut output| {
+        loop {
+            let current_url = url.clone();
+            println!("Connecting to: {}", &current_url);
+            let (mut websocket, mut input) =
+                match async_tungstenite::tokio::connect_async(&*current_url).await {
+                    Ok((websocket, _)) => {
+                        println!("Connected!");
+                        let (sender, receiver) = mpsc::channel(100);
+
+                        output.send(Event::Connected(Connection(sender))).await;
+
+                        (websocket.fuse(), receiver)
+                    }
+                    Err(_) => {
+                        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+                        output.send(Event::Disconnected).await;
+                        continue;
+                    }
+                };
+
             loop {
-                let current_url = url.clone();
-                println!("Connecting to: {}", &current_url);
-                let (mut websocket, mut input) =
-                    match async_tungstenite::tokio::connect_async(&*current_url).await {
-                        Ok((websocket, _)) => {
-                            println!("Connected!");
-                            let (sender, receiver) = mpsc::channel(100);
-
-                            output.send(Event::Connected(Connection(sender))).await;
-
-                            (websocket.fuse(), receiver)
-                        }
-                        Err(_) => {
-                            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-
-                            output.send(Event::Disconnected).await;
-                            continue;
-                        }
-                    };
-
-                loop {
-                    futures::select! {
-                        received = websocket.select_next_some() => {
-                            match received {
-                                Ok(tungstenite::Message::Text(message)) => {
-                                    output.send(Event::MessageReceived(Message::User(message.to_string()))).await;
+                futures::select! {
+                    received = websocket.select_next_some() => {
+                        match received {
+                            Ok(tungstenite::Message::Text(message)) => {
+                                match serde_json::from_str::<UserMessage>(&message) {
+                                    Ok(user_msg) => {
+                                        output.send(Event::MessageReceived(Message::User(user_msg))).await;
+                                    }
+                                    Err(e) => {
+                                        eprintln!("Failed to parse incoming message: {e}");
+                                    }
                                 }
-                                Err(_) => {
-                                    output.send(Event::Disconnected).await;
-                                    break;
-                                }
-                                Ok(_) => {},
-                            }
-                        }
-                        message = input.select_next_some() => {
-                            let result = websocket.send(tungstenite::Message::Text(message.to_string().into())).await;
-
-                            if result.is_err() {
+                            },
+                            Err(_) => {
                                 output.send(Event::Disconnected).await;
-                            }
+                                break;
+                            },
+                            Ok(_) => {},
                         }
                     }
+                    message = input.select_next_some() => {
+    let send_result = match &message {
+        Message::User(user_msg) => {
+            // Serialize UserMessage to JSON string
+            match serde_json::to_string(user_msg) {
+                Ok(json) => websocket.send(tungstenite::Message::Text(json.into())).await,
+                Err(e) => {
+                    eprintln!("Failed to serialize UserMessage: {}", e);
+                    continue; // skip sending this message
                 }
             }
-        })
+        }
+        _ => {
+            // For other message variants, do nothing or handle accordingly
+            continue;
+        }
+    };
+
+    if send_result.is_err() {
+        output.send(Event::Disconnected).await;
+        break;
+    }
+}
+                }
+            }
+        }
+    })
 }
 
 #[derive(Debug, Clone)]
@@ -81,15 +105,15 @@ impl Connection {
 pub enum Message {
     Connected,
     Disconnected,
-    User(String),
+    User(UserMessage),
 }
 
 impl Message {
-    pub fn new(message: &str) -> Option<Self> {
-        if message.is_empty() {
+    pub fn new(message: UserMessage) -> Option<Self> {
+        if message.content.is_empty() {
             None
         } else {
-            Some(Self::User(message.to_string()))
+            Some(Self::User(message))
         }
     }
 
@@ -105,7 +129,7 @@ impl Message {
         match self {
             Message::Connected => "Connected successfully!",
             Message::Disconnected => "Connection lost... Retrying...",
-            Message::User(message) => message.as_str(),
+            Message::User(user_msg) => &user_msg.content,
         }
     }
 }

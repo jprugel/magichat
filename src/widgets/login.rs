@@ -7,14 +7,12 @@ use iced::widget::{column, container, text, text_input};
 #[derive(Debug, Clone)]
 pub enum Message {
     UpdatedUsername(String),
-    UpdatedUrl(String),
     Submitted,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct Login {
     pub username: String,
-    pub url: String,
 }
 
 pub fn view(login: &Login) -> Element<Message> {
@@ -31,12 +29,6 @@ pub fn view(login: &Login) -> Element<Message> {
 
     let username_container = container(username).padding([10, 0]);
 
-    let url = text_input("Enter url...", &login.url)
-        .on_input(Message::UpdatedUrl)
-        .on_submit(Message::Submitted);
-
-    let url_container = container(url).padding([10, 0]);
-
     let style = |theme: &Theme| container::Style {
         border: iced::Border {
             width: 2.,
@@ -46,7 +38,7 @@ pub fn view(login: &Login) -> Element<Message> {
         ..container::rounded_box(theme)
     };
 
-    container(column![text, username_container, url_container])
+    container(column![text, username_container])
         .align_x(iced::alignment::Horizontal::Center)
         .style(style)
         .height(400)

@@ -11,3 +11,6 @@ tokio = { version = "1.45.1", features = ["time"] }
 url = "2.5.4"
 iced_split = { git = "https://github.com/edwloef/iced_split.git", branch = "main" }
 dragking = { git = "https://github.com/airstrike/dragking.git", branch = "dev/master" }
+iced_dialog = { git = "https://github.com/pml68/iced_dialog.git", branch = "master" }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"

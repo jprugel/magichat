@@ -1,43 +1,43 @@
-use url::Url;
+use serde::{Deserialize, Serialize};
+use serde_json;
 use std::path::PathBuf;
+use url::Url;
 
-#[derive(Default)]
+#[derive(Default, Clone, Debug)]
 pub struct ServerInfo {
-    url: String,
+    pub url: String,
     pub name: String,
     pub icon: Icon,
-    channel_list: Vec<Channel>
+    pub channel_list: Vec<Channel>,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Debug)]
 pub enum Icon {
     #[default]
     Default,
     Image(PathBuf),
 }
 
+#[derive(Clone, Debug, Default)]
 pub struct Channel {
-    log: Vec<UserMessage>
+    pub log: Vec<UserMessage>,
 }
 
 pub struct User {
-    username: String,
-    icon: Icon,
-    server_list: Vec<ServerInfo>
+    pub username: String,
 }
 
 impl Default for User {
     fn default() -> Self {
         Self {
             username: String::default(),
-            icon: Icon::Default,
-            server_list: Vec::default()
         }
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct UserMessage {
-    channel: String,
-    user: String,
-    message_content: String,
+    pub channel: String,
+    pub user: String,
+    pub content: String,
 }

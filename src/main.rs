@@ -1,20 +1,19 @@
-mod widgets;
-mod websocket;
-mod server_info;
 mod screens;
+mod server_info;
+mod websocket;
+mod widgets;
 
-use server_info::*;
-use widgets::*;
-use widgets::chat::*;
-use screens::*;
+use dragking::DragEvent;
 use iced::Element;
 use iced::Length;
 use iced::alignment::*;
 use iced::task::Task;
-use iced::widget::{container};
-use widgets::login::Login;
-use dragking::DragEvent;
+use iced::widget::container;
+use screens::*;
 use server_info::*;
+use widgets::chat::*;
+use widgets::login::Login;
+use widgets::*;
 
 fn main() -> iced::Result {
     iced::application(App::new, App::update, App::view)
@@ -36,9 +35,8 @@ struct App {
 enum Message {
     FontLoaded(Result<(), iced::font::Error>),
     Login(login::Message),
-    //Chat(chat::Message),
     Websocket(websocket::Event),
-    Hub(hub::Message)
+    Hub(hub::Message),
 }
 
 enum State {
@@ -48,8 +46,8 @@ enum State {
 
 impl App {
     fn window() -> iced::window::Settings {
-        let icon =
-            iced::window::icon::from_file("./assets/magichat_icon.png").expect("Failed to get icon.");
+        let icon = iced::window::icon::from_file("./assets/magichat_icon.png")
+            .expect("Failed to get icon.");
 
         let settings = iced::window::Settings {
             icon: Some(icon),
@@ -72,10 +70,9 @@ impl App {
     fn new() -> (Self, Task<Message>) {
         let load_font = |data: &'static [u8]| iced::font::load(data).map(Message::FontLoaded);
 
-        let task = Task::batch(vec![
-            load_font(include_bytes!("../assets/fonts/JetBrainsMonoNLNerdFont-Regular.ttf")),
-        ]);
-
+        let task = Task::batch(vec![load_font(include_bytes!(
+            "../assets/fonts/JetBrainsMonoNLNerdFont-Regular.ttf"
+        ))]);
 
         let app = Self {
             screen: Screen::Login,
@@ -88,7 +85,10 @@ impl App {
                 split_at_cc: 300.,
                 navbar: navbar::Navbar::default(),
                 chat: Chat::default(),
-            }
+                open_dialog: false,
+                server_address: String::default(),
+                server_addresses: Vec::default(),
+            },
         };
 
         (app, task)
@@ -102,10 +102,10 @@ impl App {
                 .align_x(Horizontal::Center)
                 .align_y(Vertical::Center)
                 .into(),
-            Screen::Chat => { 
+            Screen::Chat => {
                 screens::hub::view(&self.hub_state).map(|msg| Message::Hub(msg))
-                //widgets::chat::view(&self.chat).map(|msg| Message::Chat(msg)) 
-            },
+                //widgets::chat::view(&self.chat).map(|msg| Message::Chat(msg))
+            }
         }
     }
 
@@ -114,23 +114,16 @@ impl App {
             Message::FontLoaded(_) => {
                 dbg!("Fonts loaded.");
                 Task::none()
-            },
+            }
             Message::Login(login::Message::UpdatedUsername(username)) => {
                 self.login.username = username;
                 Task::none()
             }
-            Message::Login(login::Message::UpdatedUrl(url)) => {
-                self.login.url = url;
-                Task::none()
-            }
             Message::Login(login::Message::Submitted) => {
                 // Do login logic here.
+                self.user.username = self.login.username.clone();
                 self.screen = Screen::Chat;
-                Task::sip(
-                    websocket::connect(self.login.url.clone()), 
-                    |event| Message::Websocket(event),
-                    |_| Message::Websocket(websocket::Event::Disconnected)
-                )
+                Task::none()
             }
             Message::Websocket(websocket::Event::Connected(connection)) => {
                 dbg!("websocket::connected");
@@ -140,60 +133,92 @@ impl App {
             }
             Message::Websocket(websocket::Event::MessageReceived(msg)) => {
                 dbg!("websocket::message_received");
-                self.chat.text_log.push(msg.to_string());
+                self.hub_state.chat.text_log.push(msg.to_string());
                 Task::none()
             }
             Message::Websocket(websocket::Event::Disconnected) => {
                 dbg!("websocket::disconnected");
                 Task::none()
-            },
-            Message::Hub(hub::Message::ResizeSC(_split_at)) => {
-                Task::none()
-            },
-            Message::Hub(hub::Message::ResizeCC(_split_at)) => {
-                Task::none()
-            },
+            }
+            Message::Hub(hub::Message::ResizeSC(_split_at)) => Task::none(),
+            Message::Hub(hub::Message::ResizeCC(_split_at)) => Task::none(),
             Message::Hub(hub::Message::Navbar(navbar::Message::Reorder(drag_event))) => {
                 match drag_event {
                     DragEvent::Picked { .. } => {
                         // Handle Pick Event!
-                    },
+                    }
                     DragEvent::Dropped {
-                        index, target_index
+                        index,
+                        target_index,
                     } => {
                         let item = self.hub_state.navbar.servers.remove(index);
                         self.hub_state.navbar.servers.insert(target_index, item);
-                    },
+                    }
                     DragEvent::Canceled { .. } => {
                         // Handle canceled event
                     }
                 }
                 Task::none()
-            },
+            }
             Message::Hub(hub::Message::Chat(chat::Message::UserUpdated(msg))) => {
-                self.chat.written_text = msg;
+                self.hub_state.chat.written_text = msg;
                 Task::none()
             }
             Message::Hub(hub::Message::Chat(chat::Message::UserSubmitted)) => {
                 let text = format!(
                     "{}: {}",
                     self.login.username,
-                    self.chat.written_text.clone()
+                    self.hub_state.chat.written_text.clone()
                 );
                 dbg!("message::user_submitted");
                 match &mut self.state {
                     State::Connected(connection) => {
-                        connection.send(websocket::Message::User(text));
-                        self.hub_state.navbar.servers.push(ServerInfo::default())
+                        dbg!("We are connected... working on it");
+                        let msg = UserMessage {
+                            user: self.user.username.clone(),
+                            channel: "general".to_string(),
+                            content: text,
+                        };
+                        dbg!(&msg);
+                        connection.send(websocket::Message::User(msg));
                     }
                     State::Disconnected => {
                         println!("Server is not connected");
                     }
                 };
-                self.chat.written_text.clear();
+                self.hub_state.chat.written_text.clear();
                 Task::none()
             }
-            Message::Hub(_) => Task::none()
+            Message::Hub(hub::Message::Navbar(navbar::Message::SelectServer(server))) => {
+                dbg!(&server);
+                self.chat.server = server;
+                Task::none()
+            }
+            Message::Hub(hub::Message::Navbar(navbar::Message::AddServer)) => {
+                self.hub_state.server_address.clear();
+                self.hub_state.open_dialog = true;
+                Task::none()
+            }
+            Message::Hub(hub::Message::ServerAddressUpdate(server)) => {
+                self.hub_state.server_address = server;
+                Task::none()
+            }
+            Message::Hub(hub::Message::ServerAddressSubmit) => {
+                let websocket_address =
+                    format!("ws://{}/ws", self.hub_state.server_address.clone());
+                Task::batch(vec![
+                    self.update(Message::Hub(hub::Message::CloseDialog)),
+                    Task::sip(
+                        websocket::connect(websocket_address),
+                        |event| Message::Websocket(event),
+                        |_| Message::Websocket(websocket::Event::Disconnected),
+                    ),
+                ])
+            }
+            Message::Hub(hub::Message::CloseDialog) => {
+                self.hub_state.open_dialog = false;
+                Task::none()
+            }
         }
     }
 }
@@ -202,5 +227,3 @@ enum Screen {
     Login,
     Chat,
 }
-
-

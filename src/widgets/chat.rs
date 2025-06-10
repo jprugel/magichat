@@ -1,6 +1,7 @@
+use crate::server_info::*;
 use iced::Element;
-use iced::widget::{column, container, text, text_input, vertical_space};
 use iced::widget::text::Shaping;
+use iced::widget::{column, container, text, text_input, vertical_space};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -12,14 +13,16 @@ pub enum Message {
 pub struct Chat {
     pub text_log: Vec<String>,
     pub written_text: String,
+    pub server: ServerInfo,
 }
 
 pub fn view(chat: &Chat) -> Element<Message> {
-    let text_log = chat
-        .text_log
-        .iter()
-        .fold(column![], |col, msg| col.push(text(msg).shaping(Shaping::Advanced)));
+    let text_log = chat.text_log.iter().fold(column![], |col, msg| {
+        col.push(text(msg).shaping(Shaping::Advanced))
+    });
+
     let space = vertical_space();
+
     let text_input = text_input("Enter text here..", &chat.written_text)
         .on_input(Message::UserUpdated)
         .on_submit(Message::UserSubmitted);
