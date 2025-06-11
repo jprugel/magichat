@@ -15,6 +15,8 @@ use widgets::chat::*;
 use widgets::login::Login;
 use widgets::*;
 
+const ICON: &'static str = "client/assets/magichat_icon.png";
+
 fn main() -> iced::Result {
     iced::application(App::new, App::update, App::view)
         .window(App::window())
@@ -37,6 +39,7 @@ enum Message {
     Login(login::Message),
     Websocket(websocket::Event),
     Hub(hub::Message),
+    ReceivedServerInfo(ServerInfo),
 }
 
 enum State {
@@ -46,7 +49,7 @@ enum State {
 
 impl App {
     fn window() -> iced::window::Settings {
-        let icon = iced::window::icon::from_file("./assets/magichat_icon.png")
+        let icon = iced::window::icon::from_file(ICON)
             .expect("Failed to get icon.");
 
         let settings = iced::window::Settings {
@@ -127,7 +130,6 @@ impl App {
             }
             Message::Websocket(websocket::Event::Connected(connection)) => {
                 dbg!("websocket::connected");
-                self.hub_state.navbar.servers.push(ServerInfo::default());
                 self.state = State::Connected(connection);
                 Task::none()
             }
@@ -207,6 +209,13 @@ impl App {
                 let websocket_address =
                     format!("ws://{}/ws", self.hub_state.server_address.clone());
                 Task::batch(vec![
+                    Task::perform(
+                        {
+                            let server_address = format!("http://{}/info", self.hub_state.server_address.clone());
+                            async move { ServerInfo::from_url(&server_address).await }
+                        },
+                        |output| Message::ReceivedServerInfo(output.unwrap())
+                    ),
                     self.update(Message::Hub(hub::Message::CloseDialog)),
                     Task::sip(
                         websocket::connect(websocket_address),
@@ -217,6 +226,11 @@ impl App {
             }
             Message::Hub(hub::Message::CloseDialog) => {
                 self.hub_state.open_dialog = false;
+                Task::none()
+            }
+            Message::ReceivedServerInfo(info) => {
+                dbg!(&info);
+                self.hub_state.navbar.servers.push(info);
                 Task::none()
             }
         }

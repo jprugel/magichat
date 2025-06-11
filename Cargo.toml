@@ -1,5 +1,5 @@
 [package]
-name = "magichat"
+name = "client"
 version = "0.0.0"
 edition = "2024"
 
@@ -7,10 +7,14 @@ edition = "2024"
 async-tungstenite = { version = "0.29.1", features = ["tokio-rustls-webpki-roots", "tokio"] }
 futures = "0.3.31"
 iced = { git = "https://github.com/iced-rs/iced.git", branch = "master", features = ["image", "advanced", "sipper", "tokio"] }
-tokio = { version = "1.45.1", features = ["time"] }
+tokio = { version = "1.45.1", features = ["fs", "time"] }
 url = "2.5.4"
 iced_split = { git = "https://github.com/edwloef/iced_split.git", branch = "main" }
 dragking = { git = "https://github.com/airstrike/dragking.git", branch = "dev/master" }
 iced_dialog = { git = "https://github.com/pml68/iced_dialog.git", branch = "master" }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
+tower-http = "0.6.6"
+uuid = { version = "1.17.0", features = ["v4"] }
+axum = { version = "0.8.4", features = ["multipart"] }
+reqwest = "0.12.20"
