@@ -1,6 +1,7 @@
 use crate::server_info::*;
 use crate::widgets::chat;
 use crate::widgets::navbar;
+use crate::widgets::channel_navbar;
 use iced::Element;
 use iced::widget::{column, container, text, text_input};
 use iced_dialog::dialog;
@@ -14,6 +15,7 @@ pub struct State {
     pub open_dialog: bool,
     pub server_address: String,
     pub server_addresses: Vec<ServerInfo>,
+    pub channel_navbar: channel_navbar::ChannelNavbar,
 }
 
 #[derive(Debug, Clone)]
@@ -21,6 +23,7 @@ pub enum Message {
     ResizeSC(f32),
     ResizeCC(f32),
     Navbar(navbar::Message),
+    ChannelNavbar(channel_navbar::Message),
     Chat(chat::Message),
     ServerAddressUpdate(String),
     ServerAddressSubmit,
@@ -30,7 +33,7 @@ pub enum Message {
 pub fn view(state: &State) -> Element<'_, Message> {
     let server_channel_split = Split::new(
         navbar::view(&state.navbar).map(|msg| Message::Navbar(msg)),
-        text("B"),
+        channel_navbar::view(&state.channel_navbar).map(|msg| Message::ChannelNavbar(msg)),
         state.split_at_sc,
         Message::ResizeSC,
     )

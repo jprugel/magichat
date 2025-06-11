@@ -3,6 +3,7 @@ use serde_json;
 use std::path::PathBuf;
 use url::Url;
 use std::boxed::Box;
+use crate::widgets::user_message::*;
 
 #[derive(Default, Clone, Debug, Serialize, Deserialize)]
 pub struct ServerInfo {
@@ -38,8 +39,10 @@ pub enum Icon {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Channel {
     pub log: Vec<UserMessage>,
+    pub name: String,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct User {
     pub username: String,
 }
@@ -50,11 +53,4 @@ impl Default for User {
             username: String::default(),
         }
     }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
-pub struct UserMessage {
-    pub channel: String,
-    pub user: String,
-    pub content: String,
 }

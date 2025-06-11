@@ -6,7 +6,8 @@ use futures::channel::mpsc;
 use futures::sink::SinkExt;
 use futures::stream::StreamExt;
 
-use crate::server_info::*;
+use crate::widgets::user_message::UserMessage;
+use crate::server_info::User;
 use async_tungstenite::tungstenite;
 use std::fmt;
 
@@ -143,5 +144,23 @@ impl fmt::Display for Message {
 impl<'a> text::IntoFragment<'a> for &'a Message {
     fn into_fragment(self) -> text::Fragment<'a> {
         text::Fragment::Borrowed(self.as_str())
+    }
+}
+
+impl From<Message> for UserMessage {
+    fn from(value: Message) -> Self {
+        match value {
+            Message::Connected => Self {
+                user: User::default(),
+                content: String::from("default connected message"),
+                channel: String::from("default"),
+            },
+            Message::Disconnected => Self {
+                user: User::default(),
+                content: String::from("Disconnected"),
+                channel: String::from("default"),
+            },
+            Message::User(user_msg) => user_msg,
+        }
     }
 }
