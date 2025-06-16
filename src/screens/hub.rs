@@ -3,7 +3,7 @@ use crate::widgets::chat;
 use crate::widgets::server_navbar;
 use crate::widgets::channel_navbar;
 use iced::Element;
-use iced::widget::{column, container, text, text_input};
+use iced::widget::{column, container, text, text_input, svg};
 use iced_dialog::dialog;
 use iced_split::{Split, Strategy};
 
@@ -30,6 +30,8 @@ pub enum Message {
     CloseDialog,
 }
 
+const SVG_LOADING: &str = "client/assets/loading.svg";
+
 impl Hub {
     pub fn view(&self) -> Element<Message> {
         let server_channel_split = Split::new(
@@ -51,10 +53,10 @@ impl Hub {
         let container = container(channel_chat_split);
 
         let dialog_content = column![
-        text_input("Enter server address...", &self.server_address)
-            .on_input(Message::ServerAddressUpdate)
-            .on_submit(Message::ServerAddressSubmit)
-    ];
+            text_input("Enter server address...", &self.server_address)
+                .on_input(Message::ServerAddressUpdate)
+                .on_submit(Message::ServerAddressSubmit)
+        ];
 
         dialog(self.open_dialog, container, dialog_content)
             .title("Add Server")

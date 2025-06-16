@@ -1,5 +1,6 @@
 use iced::{Alignment, Element, Length};
-use iced::widget::{row, column, container, text, svg};
+use iced::advanced::text::Wrapping;
+use iced::widget::{row, column, container, text, svg, horizontal_space, text_input};
 use iced::widget::text::Shaping;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -16,25 +17,28 @@ pub struct UserMessage {
 #[derive(Debug, Clone)]
 pub enum Message {}
 
-pub fn view(state: &UserMessage) -> Element<Message> {
-    let icon = svg("client/assets/user_icon.svg")
-        .height(45)
-        .width(45);
-    
-    container(
-        row![
+impl UserMessage {
+    pub fn view(&self) -> Element<Message> {
+        let icon = svg("client/assets/user_icon.svg")
+            .height(45)
+            .width(45);
+
+        container(
+            row![
             container(icon)
                 .align_y(Alignment::Center),
+            horizontal_space().width(7),
             container(
                 column![
                     container(
-                        text(&state.user.username).shaping(Shaping::Advanced).style(text::success),
+                        text(&self.user.username).shaping(Shaping::Advanced).style(text::success),
                     ), 
                     container(
-                        text(&state.content).shaping(Shaping::Advanced)
-                    )
+                        text(&self.content).shaping(Shaping::Advanced),
+                    ).width(Length::Fill),
                 ]
-            )
-        ].height(50)
-    ).into()
+            ).width(Length::Fill).style(container::secondary),
+        ].width(Length::Fill).padding(3),
+        ).style(container::bordered_box).into()
+    }
 }

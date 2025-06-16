@@ -184,7 +184,6 @@ impl App {
             }
             Message::Hub(hub::Message::Chat(chat::Message::UserUpdated(msg))) => {
                 info!("chat::text_input updated: {}", msg);
-                dbg!(self.hub.chat.clone());
                 self.hub.chat.written_text = msg;
                 Task::none()
             }
@@ -236,7 +235,6 @@ impl App {
                         },
                         |output| Message::ReceivedServerInfo(output.unwrap())
                     ),
-                    self.update(Message::Hub(hub::Message::CloseDialog)),
                     Task::sip(
                         websocket::connect(websocket_address),
                         |event| Message::Websocket(event),
@@ -251,10 +249,11 @@ impl App {
             }
             Message::ReceivedServerInfo(info) => {
                 info!("Received server info: {:?}", info);
+                
                 info.clone().channel_list.into_iter().for_each(|channel| self.hub.channel_navbar.channels.push(channel));
                 self.hub.chat.channel = self.hub.channel_navbar.channels[0].clone();
                 self.hub.navbar.servers.push(info);
-                Task::none()
+                self.update(Message::Hub(hub::Message::CloseDialog))
             },
             Message::Hub(hub::Message::ChannelNavbar(channel_navbar::Message::ChannelSelected(channel))) => {
                 info!("Selected channel: {}", channel);
