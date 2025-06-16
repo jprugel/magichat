@@ -2,8 +2,8 @@ mod screens;
 mod server_info;
 mod websocket;
 mod widgets;
+mod action;
 
-use std::collections::HashMap;
 use dragking::DragEvent;
 use iced::Element;
 use iced::Length;
@@ -18,7 +18,9 @@ use widgets::login::Login;
 use widgets::*;
 use widgets::user_message::UserMessage;
 use crate::widgets::channel_navbar::ChannelNavbar;
-use tracing_subscriber::*;
+use uuid::Uuid;
+use crate::action::Action;
+use crate::screens::hub::Hub;
 
 const ICON: &'static str = "client/assets/magichat_icon.png";
 
@@ -36,7 +38,12 @@ struct App {
     login: Login,
     state: State,
     user: User,
-    hub_state: screens::hub::State,
+    hub: Hub,
+}
+
+enum Screen {
+    Login,
+    Hub,
 }
 
 #[derive(Debug, Clone)]
@@ -88,15 +95,15 @@ impl App {
             login: Login::default(), 
             state: State::Disconnected,
             user: User::default(),
-            hub_state: hub::State {
+            hub: hub::Hub {
                 split_at_sc: 80.,
                 split_at_cc: 300.,
-                navbar: navbar::Navbar::default(),
+                navbar: server_navbar::Navbar::default(),
                 chat: Chat::default(),
                 open_dialog: false,
                 server_address: String::default(),
                 server_addresses: Vec::default(),
-                channel_navbar: ChannelNavbar::default()
+                channel_navbar: ChannelNavbar::default(),
             },
         };
 
@@ -105,14 +112,14 @@ impl App {
 
     fn view(&self) -> Element<Message> {
         match self.screen {
-            Screen::Login => container(login::view(&self.login).map(|msg| Message::Login(msg)))
+            Screen::Login => container(self.login.view().map(|msg| Message::Login(msg)))
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .align_x(Horizontal::Center)
                 .align_y(Vertical::Center)
                 .into(),
-            Screen::Chat => {
-                screens::hub::view(&self.hub_state).map(|msg| Message::Hub(msg))
+            Screen::Hub => {
+                self.hub.view().map(|msg| Message::Hub(msg))
                 //widgets::chat::view(&self.chat).map(|msg| Message::Chat(msg))
             }
         }
@@ -124,16 +131,17 @@ impl App {
                 info!("Fonts loaded.");
                 Task::none()
             }
-            Message::Login(login::Message::UpdatedUsername(username)) => {
-                info!("Username updated: {}", username);
-                self.login.username = username;
-                Task::none()
-            }
-            Message::Login(login::Message::Submitted) => {
-                // Do login logic here.
-                info!("Login Submitted: {}", self.login.username.clone());
-                self.user.username = self.login.username.clone();
-                self.screen = Screen::Chat;
+            Message::Login(msg) => {
+                let Action { instruction, task } = self.login.update(msg);
+                if let Some(instruction) = instruction {
+                    match instruction {
+                        login::Instruction::Login { username } => {
+                            self.user.username = username;
+                            self.screen = Screen::Hub;
+                        },
+                        _ => {}
+                    }
+                }
                 Task::none()
             }
             Message::Websocket(websocket::Event::Connected(connection)) => {
@@ -143,17 +151,11 @@ impl App {
             }
             Message::Websocket(websocket::Event::MessageReceived(msg)) => {
                 info!("Message received: {}", msg);
-                self.hub_state.chat.channel.log.push(msg.clone().into());
-                self.hub_state.channel_navbar.channels.iter_mut().for_each(|channel| {
-                    if let websocket::Message::User(user_message ) = msg.clone() {
-                        info!("user message: {:?}", user_message);
-                        info!("channel: {:?}", channel.name);
-                        info!("user: {:?}", &user_message.channel);
-                        if channel.name == user_message.channel {
-                            channel.log.push(msg.clone().into());
-                        }
-                    }
-                });
+                if let websocket::Message::User(user_message) = msg.clone() {
+                    self.hub.chat.channel.log.push(user_message.clone());
+                    let channel = self.hub.channel_navbar.channels.iter_mut().find(|c| c.name == user_message.channel).unwrap();
+                    channel.log.push(user_message.clone());
+                };
                 Task::none()
             }
             Message::Websocket(websocket::Event::Disconnected) => {
@@ -162,7 +164,7 @@ impl App {
             }
             Message::Hub(hub::Message::ResizeSC(_split_at)) => Task::none(),
             Message::Hub(hub::Message::ResizeCC(_split_at)) => Task::none(),
-            Message::Hub(hub::Message::Navbar(navbar::Message::Reorder(drag_event))) => {
+            Message::Hub(hub::Message::Navbar(server_navbar::Message::Reorder(drag_event))) => {
                 match drag_event {
                     DragEvent::Picked { .. } => {
                         // Handle Pick Event!
@@ -171,8 +173,8 @@ impl App {
                         index,
                         target_index,
                     } => {
-                        let item = self.hub_state.navbar.servers.remove(index);
-                        self.hub_state.navbar.servers.insert(target_index, item);
+                        let item = self.hub.navbar.servers.remove(index);
+                        self.hub.navbar.servers.insert(target_index, item);
                     }
                     DragEvent::Canceled { .. } => {
                         // Handle canceled event
@@ -182,18 +184,19 @@ impl App {
             }
             Message::Hub(hub::Message::Chat(chat::Message::UserUpdated(msg))) => {
                 info!("chat::text_input updated: {}", msg);
-                dbg!(self.hub_state.chat.clone());
-                self.hub_state.chat.written_text = msg;
+                dbg!(self.hub.chat.clone());
+                self.hub.chat.written_text = msg;
                 Task::none()
             }
             Message::Hub(hub::Message::Chat(chat::Message::UserSubmitted)) => {
-                info!("chat::text_input submitted: {}", self.hub_state.chat.written_text.clone());
+                info!("chat::text_input submitted: {}", self.hub.chat.written_text.clone());
                 match &mut self.state {
                     State::Connected(connection) => {
                         let msg = UserMessage {
                             user: self.user.clone(),
                             channel: "General".to_string(),
-                            content: self.hub_state.chat.written_text.clone(),
+                            content: self.hub.chat.written_text.clone(),
+                            id: Uuid::new_v4(),
                         };
                         connection.send(websocket::Message::User(msg));
                     }
@@ -201,34 +204,34 @@ impl App {
                         println!("Server is not connected");
                     }
                 };
-                self.hub_state.chat.written_text.clear();
+                self.hub.chat.written_text.clear();
                 Task::none()
             }
-            Message::Hub(hub::Message::Navbar(navbar::Message::SelectServer(server))) => {
+            Message::Hub(hub::Message::Navbar(server_navbar::Message::SelectServer(server))) => {
                 info!("Selected server: {}", server.name);
-                self.hub_state.chat.server = server;
+                self.hub.chat.server = server;
                 Task::none()
             }
-            Message::Hub(hub::Message::Navbar(navbar::Message::AddServer)) => {
+            Message::Hub(hub::Message::Navbar(server_navbar::Message::AddServer)) => {
                 info!("Adding server");
-                self.hub_state.server_address.clear();
-                self.hub_state.open_dialog = true;
+                self.hub.server_address.clear();
+                self.hub.open_dialog = true;
                 Task::none()
             }
             Message::Hub(hub::Message::ServerAddressUpdate(server)) => {
                 info!("Server address updated: {}", server);
-                self.hub_state.server_address = server;
+                self.hub.server_address = server;
                 Task::none()
             }
             Message::Hub(hub::Message::ServerAddressSubmit) => {
-                info!("Server address submitted: {}", self.hub_state.server_address.clone());
+                info!("Server address submitted: {}", self.hub.server_address.clone());
                 let websocket_address =
-                    format!("ws://{}/ws", self.hub_state.server_address.clone());
-                
+                    format!("ws://{}/ws", self.hub.server_address.clone());
+
                 Task::batch(vec![
                     Task::perform(
                         {
-                            let server_address = format!("http://{}/info", self.hub_state.server_address.clone());
+                            let server_address = format!("http://{}/info", self.hub.server_address.clone());
                             async move { ServerInfo::from_url(&server_address).await }
                         },
                         |output| Message::ReceivedServerInfo(output.unwrap())
@@ -243,21 +246,21 @@ impl App {
             }
             Message::Hub(hub::Message::CloseDialog) => {
                 info!("Closing dialog");
-                self.hub_state.open_dialog = false;
+                self.hub.open_dialog = false;
                 Task::none()
             }
             Message::ReceivedServerInfo(info) => {
                 info!("Received server info: {:?}", info);
-                info.clone().channel_list.into_iter().for_each(|channel| self.hub_state.channel_navbar.channels.push(channel));
-                self.hub_state.chat.channel = self.hub_state.channel_navbar.channels[0].clone();
-                self.hub_state.navbar.servers.push(info);
+                info.clone().channel_list.into_iter().for_each(|channel| self.hub.channel_navbar.channels.push(channel));
+                self.hub.chat.channel = self.hub.channel_navbar.channels[0].clone();
+                self.hub.navbar.servers.push(info);
                 Task::none()
             },
             Message::Hub(hub::Message::ChannelNavbar(channel_navbar::Message::ChannelSelected(channel))) => {
                 info!("Selected channel: {}", channel);
-                let test = self.hub_state.channel_navbar.channels.iter().find(|c| c.name == channel).unwrap().clone();
+                let test = self.hub.channel_navbar.channels.iter().find(|c| c.name == channel).unwrap().clone();
                 info!("test: {:?}", test);
-                self.hub_state.chat.channel = self.hub_state.channel_navbar.channels.iter().find(|c| c.name == channel).unwrap().clone();
+                self.hub.chat.channel = self.hub.channel_navbar.channels.iter().find(|c| c.name == channel).unwrap().clone();
                 Task::none()
             },
             _ => {
@@ -265,9 +268,4 @@ impl App {
             }
         }
     }
-}
-
-enum Screen {
-    Login,
-    Chat,
 }

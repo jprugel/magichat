@@ -45,12 +45,14 @@ pub struct Channel {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct User {
     pub username: String,
+    pub icon: Icon
 }
 
 impl Default for User {
     fn default() -> Self {
         Self {
             username: String::default(),
+            icon: Icon::Default
         }
     }
 }

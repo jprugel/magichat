@@ -10,6 +10,7 @@ use crate::widgets::user_message::UserMessage;
 use crate::server_info::User;
 use async_tungstenite::tungstenite;
 use std::fmt;
+use uuid::Uuid;
 
 pub fn connect(url: String) -> impl Sipper<Never, Event> {
     sipper(async move |mut output| {
@@ -147,20 +148,4 @@ impl<'a> text::IntoFragment<'a> for &'a Message {
     }
 }
 
-impl From<Message> for UserMessage {
-    fn from(value: Message) -> Self {
-        match value {
-            Message::Connected => Self {
-                user: User::default(),
-                content: String::from("default connected message"),
-                channel: String::from("default"),
-            },
-            Message::Disconnected => Self {
-                user: User::default(),
-                content: String::from("Disconnected"),
-                channel: String::from("default"),
-            },
-            Message::User(user_msg) => user_msg,
-        }
-    }
-}
+
