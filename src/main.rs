@@ -53,6 +53,8 @@ enum Message {
     Websocket(websocket::Event),
     Hub(hub::Message),
     ReceivedServerInfo(ServerInfo),
+    ImageFetchFailed,
+    ReceivedServerImage(Vec<u8>),
 }
 
 enum State {
@@ -101,8 +103,8 @@ impl App {
                 navbar: server_navbar::Navbar::default(),
                 chat: Chat::default(),
                 open_dialog: false,
-                server_address: String::default(),
-                server_addresses: Vec::default(),
+                dialog_written_server_address: String::default(),
+                servers: Vec::default(),
                 channel_navbar: ChannelNavbar::default(),
             },
         };
@@ -213,27 +215,48 @@ impl App {
             }
             Message::Hub(hub::Message::Navbar(server_navbar::Message::AddServer)) => {
                 info!("Adding server");
-                self.hub.server_address.clear();
+                self.hub.dialog_written_server_address.clear();
                 self.hub.open_dialog = true;
                 Task::none()
             }
             Message::Hub(hub::Message::ServerAddressUpdate(server)) => {
                 info!("Server address updated: {}", server);
-                self.hub.server_address = server;
+                self.hub.dialog_written_server_address = server;
                 Task::none()
             }
             Message::Hub(hub::Message::ServerAddressSubmit) => {
-                info!("Server address submitted: {}", self.hub.server_address.clone());
+                info!("Server address submitted: {}", self.hub.dialog_written_server_address.clone());
                 let websocket_address =
-                    format!("ws://{}/ws", self.hub.server_address.clone());
+                    format!("ws://{}/ws", self.hub.dialog_written_server_address.clone());
 
                 Task::batch(vec![
                     Task::perform(
                         {
-                            let server_address = format!("http://{}/info", self.hub.server_address.clone());
+                            let server_address = format!("http://{}/info", self.hub.dialog_written_server_address.clone());
                             async move { ServerInfo::from_url(&server_address).await }
                         },
                         |output| Message::ReceivedServerInfo(output.unwrap())
+                    ),
+                    Task::perform(
+                        {
+                            info!("Fetching server icon");
+                            let server_address = format!("http://{}/images/server_icon.png", self.hub.dialog_written_server_address.clone());
+                            async move {
+                                match reqwest::get(&server_address).await {
+                                    Ok(response) if response.status().is_success() => {
+                                        let bytes = response.bytes().await.unwrap_or_default();
+                                        Some(bytes)
+                                    },
+                                    _ => None,
+                                }
+                            }
+                        },
+                        |maybe_bytes| {
+                            match maybe_bytes {
+                                Some(bytes) => Message::ReceivedServerImage(bytes.into()),
+                                None => Message::ImageFetchFailed
+                            }
+                        }
                     ),
                     Task::sip(
                         websocket::connect(websocket_address),
@@ -249,7 +272,7 @@ impl App {
             }
             Message::ReceivedServerInfo(info) => {
                 info!("Received server info: {:?}", info);
-                
+
                 info.clone().channel_list.into_iter().for_each(|channel| self.hub.channel_navbar.channels.push(channel));
                 self.hub.chat.channel = self.hub.channel_navbar.channels[0].clone();
                 self.hub.navbar.servers.push(info);
@@ -262,6 +285,11 @@ impl App {
                 self.hub.chat.channel = self.hub.channel_navbar.channels.iter().find(|c| c.name == channel).unwrap().clone();
                 Task::none()
             },
+            Message::ReceivedServerImage(bytes) => {
+                info!("Received server icon");
+                self.hub.chat.server.icon = Icon::Image(bytes);
+                Task::none()
+            }
             _ => {
                 Task::none()
             }

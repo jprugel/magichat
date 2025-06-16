@@ -33,7 +33,7 @@ impl ServerInfo {
 pub enum Icon {
     #[default]
     Default,
-    Image(PathBuf),
+    Image(Vec<u8>),
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]

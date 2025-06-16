@@ -21,21 +21,23 @@ pub struct Chat {
     pub written_text: String,
 }
 
-pub fn view(chat: &Chat) -> Element<Message> {
-    let title_bar = float(text(chat.channel.name.clone()));
-    let rule: Rule = horizontal_rule(1);
-    let text_log = chat
-        .channel
-        .log
-        .iter()
-        .fold(column![], |col, msg| col.push(msg.view().map(Message::MessageView)));
-    
-    let scroll = scrollable(text_log).height(Length::Fill).anchor_bottom();
-    
+impl Chat {
+    pub fn view(&self) -> Element<Message> {
+        let title_bar = float(text(self.channel.name.clone()));
+        let rule: Rule = horizontal_rule(1);
+        let text_log = self
+            .channel
+            .log
+            .iter()
+            .fold(column![], |col, msg| col.push(msg.view().map(Message::MessageView)));
 
-    let text_input = float(text_input("Enter text here..", &chat.written_text)
-        .on_input(Message::UserUpdated)
-        .on_submit(Message::UserSubmitted));
+        let scroll = scrollable(text_log).height(Length::Fill).anchor_bottom();
 
-    container(column![title_bar, rule, scroll, text_input]).into()
+
+        let text_input = float(text_input("Enter text here..", &self.written_text)
+            .on_input(Message::UserUpdated)
+            .on_submit(Message::UserSubmitted));
+
+        container(column![title_bar, rule, scroll, text_input]).into()
+    }
 }
