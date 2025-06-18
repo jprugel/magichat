@@ -1,0 +1,12 @@
+[server]
+host = [127, 0, 0, 1]
+port = 3000
+
+[info]
+server_name = "The Guild"
+icon = "server_icon.svg"
+channels = [
+  "General",
+  "Gaming",
+  "Coding Den"
+]
