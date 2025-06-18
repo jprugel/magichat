@@ -7,4 +7,5 @@
 
 ## Considerations
 - [ ] How will we manage the bot client?
+- [ ] Should we use http::uri::Uri?
 
