@@ -1,20 +1,17 @@
-mod server_info;
-mod websocket;
 mod config;
-mod routes;
 pub mod filetype;
-
+mod routes;
+mod websocket;
 use axum::{
     Router,
-    routing::{ get, post, get_service },
+    routing::{get, get_service},
 };
-use tower_http::services::ServeDir;
-use server_info::*;
-use std::{sync::Arc};
-use std::net::SocketAddr;
-use tokio::sync::{broadcast};
 use config::*;
-use crate::routes::images::image_handler;
+use protocol::UserMessage;
+use std::net::SocketAddr;
+use std::sync::Arc;
+use tokio::sync::broadcast;
+use tower_http::services::ServeDir;
 
 #[derive(Clone)]
 struct AppState {
@@ -34,8 +31,10 @@ async fn main() {
     let app = Router::new()
         .route("/ws", get(websocket::handler))
         .route("/info", get(routes::info::handler))
-        .nest_service("/images", get_service(ServeDir::new("server/assets/images/")))
-        .route("/image", post(routes::images::upload_handler))
+        .nest_service(
+            "/images",
+            get_service(ServeDir::new("server/assets/images/")),
+        )
         .with_state(state.clone());
 
     let addr = SocketAddr::from((state.config.server.host, state.config.server.port));

@@ -1,8 +1,6 @@
 use serde::Deserialize;
 use std::fs;
 use std::path::PathBuf;
-use crate::server_info;
-use crate::server_info::Icon;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
@@ -18,7 +16,10 @@ pub struct ServerConfig {
 
 impl ServerConfig {
     pub fn to_addr(&self) -> String {
-        format!("{}{}{}{}:{}", self.host[0], self.host[1], self.host[2], self.host[3], self.port)
+        format!(
+            "{}{}{}{}:{}",
+            self.host[0], self.host[1], self.host[2], self.host[3], self.port
+        )
     }
 }
 
@@ -26,7 +27,7 @@ impl ServerConfig {
 pub struct Info {
     pub server_name: String,
     pub channels: Vec<String>,
-    pub icon: PathBuf
+    pub icon: PathBuf,
 }
 
 pub fn load_config(path: &str) -> Result<Config, Box<dyn std::error::Error>> {

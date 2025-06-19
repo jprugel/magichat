@@ -1,12 +1,7 @@
 use iced::Element;
-use iced::widget::{
-    container, 
-    column, 
-    text,
-    button
-};
 use iced::Length;
-use crate::server_info::Channel;
+use iced::widget::{button, column, container, text};
+use protocol::Channel;
 
 #[derive(Debug, Clone, Default)]
 pub struct ChannelNavbar {
@@ -15,7 +10,7 @@ pub struct ChannelNavbar {
 
 #[derive(Clone, Debug)]
 pub enum Message {
-    ChannelSelected(String)
+    ChannelSelected(String),
 }
 
 pub fn view(state: &ChannelNavbar) -> Element<Message> {
@@ -23,6 +18,12 @@ pub fn view(state: &ChannelNavbar) -> Element<Message> {
         .clone()
         .channels
         .into_iter()
-        .fold(column![], |col, channel| col.push(container(button(text(channel.name.clone())).width(Length::Fill).on_press(Message::ChannelSelected(channel.name.clone())))))
+        .fold(column![], |col, channel| {
+            col.push(container(
+                button(text(channel.name.clone()))
+                    .width(Length::Fill)
+                    .on_press(Message::ChannelSelected(channel.name.clone())),
+            ))
+        })
         .into()
 }

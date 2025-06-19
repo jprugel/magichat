@@ -1,6 +1,6 @@
 // SRC: https://github.com/airstrike/iced_receipts/blob/master/src/action.rs
-
-//! A common API for returning [`Task`](iced::Task)s and/or generic
+#![allow(dead_code)]
+//! A protocol API for returning [`Task`](iced::Task)s and/or generic
 //! `Instruction`s from views.
 //!
 //! The `Action` type provides a unified way to tell an ancestor component how
@@ -39,7 +39,7 @@
 //! to chain the tasks together. An example of this can be be seen in the `fn
 //! update` function in `src/main.rs`.
 //!
-//! This design pattern is common in many [`iced`] applications, although the
+//! This design pattern is protocol in many [`iced`] applications, although the
 //! exact implementation may vary. It is often the case that the `Action` is
 //! simply an enum which contains either instructions or tasks, but our proposed
 //! design allows for more flexibility and clarity at the expense of slightly
@@ -54,8 +54,8 @@
 //!     Run(Task<Message>),
 //! }
 //! ```
-use iced::advanced::graphics::futures::MaybeSend;
 use iced::Task;
+use iced::advanced::graphics::futures::MaybeSend;
 use std::fmt;
 
 pub struct Action<I, Message> {
@@ -98,10 +98,7 @@ impl<I, Message> Action<I, Message> {
     }
 
     /// Map the message of the `Action`'s [`Task`](iced::Task) to a different type.
-    pub fn map<N>(
-        self,
-        f: impl Fn(Message) -> N + MaybeSend + 'static,
-    ) -> Action<I, N>
+    pub fn map<N>(self, f: impl Fn(Message) -> N + MaybeSend + 'static) -> Action<I, N>
     where
         Message: MaybeSend + 'static,
         N: MaybeSend + 'static,
@@ -113,10 +110,7 @@ impl<I, Message> Action<I, Message> {
     }
 
     /// Maps the `Instruction` of the `Action` to a different type.
-    pub fn map_instruction<N>(
-        self,
-        f: impl Fn(I) -> N + MaybeSend + 'static,
-    ) -> Action<N, Message>
+    pub fn map_instruction<N>(self, f: impl Fn(I) -> N + MaybeSend + 'static) -> Action<N, Message>
     where
         I: MaybeSend + 'static,
         N: MaybeSend + 'static,
@@ -140,9 +134,7 @@ impl<I, Message> Action<I, Message> {
     }
 }
 
-impl<Instruction: fmt::Debug, Message> fmt::Debug
-for Action<Instruction, Message>
-{
+impl<Instruction: fmt::Debug, Message> fmt::Debug for Action<Instruction, Message> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Action")
             .field("instruction", &self.instruction)

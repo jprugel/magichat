@@ -6,11 +6,9 @@ use futures::channel::mpsc;
 use futures::sink::SinkExt;
 use futures::stream::StreamExt;
 
-use crate::widgets::user_message::UserMessage;
-use crate::server_info::User;
 use async_tungstenite::tungstenite;
+use protocol::UserMessage;
 use std::fmt;
-use uuid::Uuid;
 
 pub fn connect(url: String) -> impl Sipper<Never, Event> {
     sipper(async move |mut output| {
@@ -37,49 +35,49 @@ pub fn connect(url: String) -> impl Sipper<Never, Event> {
 
             loop {
                 futures::select! {
-                    received = websocket.select_next_some() => {
-                        match received {
-                            Ok(tungstenite::Message::Text(message)) => {
-                                match serde_json::from_str::<UserMessage>(&message) {
-                                    Ok(user_msg) => {
-                                        output.send(Event::MessageReceived(Message::User(user_msg))).await;
+                                    received = websocket.select_next_some() => {
+                                        match received {
+                                            Ok(tungstenite::Message::Text(message)) => {
+                                                match serde_json::from_str::<UserMessage>(&message) {
+                                                    Ok(user_msg) => {
+                                                        output.send(Event::MessageReceived(Message::User(user_msg))).await;
+                                                    }
+                                                    Err(e) => {
+                                                        eprintln!("Failed to parse incoming message: {e}");
+                                                    }
+                                                }
+                                            },
+                                            Err(_) => {
+                                                output.send(Event::Disconnected).await;
+                                                break;
+                                            },
+                                            Ok(_) => {},
+                                        }
                                     }
-                                    Err(e) => {
-                                        eprintln!("Failed to parse incoming message: {e}");
-                                    }
+                                    message = input.select_next_some() => {
+                    let send_result = match &message {
+                        Message::User(user_msg) => {
+                            // Serialize UserMessage to JSON string
+                            match serde_json::to_string(user_msg) {
+                                Ok(json) => websocket.send(tungstenite::Message::Text(json.into())).await,
+                                Err(e) => {
+                                    eprintln!("Failed to serialize UserMessage: {}", e);
+                                    continue; // skip sending this message
                                 }
-                            },
-                            Err(_) => {
-                                output.send(Event::Disconnected).await;
-                                break;
-                            },
-                            Ok(_) => {},
+                            }
                         }
-                    }
-                    message = input.select_next_some() => {
-    let send_result = match &message {
-        Message::User(user_msg) => {
-            // Serialize UserMessage to JSON string
-            match serde_json::to_string(user_msg) {
-                Ok(json) => websocket.send(tungstenite::Message::Text(json.into())).await,
-                Err(e) => {
-                    eprintln!("Failed to serialize UserMessage: {}", e);
-                    continue; // skip sending this message
-                }
-            }
-        }
-        _ => {
-            // For other message variants, do nothing or handle accordingly
-            continue;
-        }
-    };
+                        _ => {
+                            // For other message variants, do nothing or handle accordingly
+                            continue;
+                        }
+                    };
 
-    if send_result.is_err() {
-        output.send(Event::Disconnected).await;
-        break;
-    }
-}
+                    if send_result.is_err() {
+                        output.send(Event::Disconnected).await;
+                        break;
+                    }
                 }
+                                }
             }
         }
     })
@@ -147,5 +145,3 @@ impl<'a> text::IntoFragment<'a> for &'a Message {
         text::Fragment::Borrowed(self.as_str())
     }
 }
-
-

@@ -1,14 +1,12 @@
+use crate::*;
 use axum::{
-    Router,
     extract::ws::{Message, WebSocket, WebSocketUpgrade},
     response::Response,
-    routing::get,
 };
 use futures_util::{SinkExt, StreamExt};
-use std::{net::SocketAddr, sync::Arc};
-use tokio::sync::{broadcast};
-use crate::server_info::*;
-use crate::*;
+use protocol::UserMessage;
+use std::sync::Arc;
+use tokio::sync::broadcast;
 
 pub async fn handler(
     ws: WebSocketUpgrade,
@@ -18,7 +16,7 @@ pub async fn handler(
     ws.on_upgrade(move |socket| handle_socket(socket, state.sender))
 }
 
-async fn handle_socket(mut socket: WebSocket, tx: Arc<broadcast::Sender<UserMessage>>) {
+async fn handle_socket(socket: WebSocket, tx: Arc<broadcast::Sender<UserMessage>>) {
     let mut rx = tx.subscribe();
 
     let (mut sender, mut receiver) = socket.split();

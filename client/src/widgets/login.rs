@@ -1,12 +1,10 @@
-use iced::{Element, Task};
+use crate::action::Action;
 use iced::Padding;
 use iced::Theme;
 use iced::border::*;
 use iced::widget::{column, container, text, text_input};
-use tracing::log::info;
-use crate::action::Action;
-use crate::Screen;
-use crate::widgets::login;
+use iced::{Element};
+use tracing::info;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -15,10 +13,7 @@ pub enum Message {
 }
 
 pub enum Instruction {
-    Login {
-        username: String,
-    },
-    None,
+    Login { username: String },
 }
 
 #[derive(Debug, Clone, Default)]
@@ -58,16 +53,18 @@ impl Login {
             .padding([0, 50])
             .into()
     }
-    
+
     pub fn update(&mut self, msg: Message) -> Action<Instruction, Message> {
         match msg {
             Message::UpdatedUsername(username) => {
                 self.username = username;
                 Action::none()
-            },
+            }
             Message::Submitted => {
                 info!("Submitted username: {}", self.username);
-                Action::instruction(Instruction::Login { username: self.username.clone() })
+                Action::instruction(Instruction::Login {
+                    username: self.username.clone(),
+                })
             }
         }
     }

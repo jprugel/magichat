@@ -1,22 +1,22 @@
-use axum::http::StatusCode;
-use axum::Json;
-use crate::server_info::*;
-use crate::*;
 use crate::filetype::{FileType, get_file_type};
+use crate::*;
+use axum::Json;
+use axum::http::StatusCode;
+use protocol::{Channel, Icon, Server};
 
 #[axum::debug_handler]
 pub async fn handler(
     axum::extract::State(state): axum::extract::State<AppState>,
-) -> (StatusCode, Json<ServerInfo>) {
+) -> (StatusCode, Json<Server>) {
     let icon_path = state.config.info.icon;
     let filetype = get_file_type(&icon_path);
     let icon = match filetype {
         FileType::Png => Icon::Svg(icon_path),
         _ => Icon::Default,
     };
-    
-    let server_info = ServerInfo {
-        url: format!("{}", state.config.server.to_addr()),
+
+    let server_info = Server {
+        url: state.config.server.to_addr(),
         name: state.config.info.server_name,
         icon,
         channel_list: state
@@ -25,7 +25,7 @@ pub async fn handler(
             .channels
             .into_iter()
             .map(Channel::from_name)
-            .collect()
+            .collect(),
     };
 
     (StatusCode::ACCEPTED, Json(server_info))
