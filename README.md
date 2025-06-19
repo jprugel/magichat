@@ -1,11 +1,7 @@
 # Magichat
+Magichat is an indev chat platform designed to be entirely self-hosted.
 
-## To Do:
-- [ ] Allow a given user to reply to a given message.
-- [ ] Allow reactions to messages.
-- [ ] Fix icon situation, its rough.
-
-## Considerations
-- [ ] How will we manage the bot client?
-- [ ] Should we use http::uri::Uri?
-
+## High Level Features
+- Self hostable chat server.
+- Self hostable identity server.
+- An embedded api for bot clients.

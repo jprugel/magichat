@@ -52,6 +52,7 @@ enum Message {
     ReceivedServerInfo(Server),
     ImageFetchFailed,
     ReceivedServerImage(Vec<u8>),
+    ServerInfoFailed,
 }
 
 enum State {
@@ -197,8 +198,6 @@ impl App {
                     match instruction {
                         hub::Instruction::AddServer(_server_address) => {
                             info!("Server address submitted: {}", self.hub.dialog_written_server_address.clone());
-                            let websocket_address =
-                                format!("ws://{}/ws", self.hub.dialog_written_server_address.clone());
 
                             Task::batch(vec![
                                 Task::perform(
@@ -206,7 +205,12 @@ impl App {
                                         let server_address = self.hub.dialog_written_server_address.clone();
                                         async move { Server::from_url(&server_address).await }
                                     },
-                                    |output| Message::ReceivedServerInfo(output.unwrap())
+                                    |output| {
+                                        match output {
+                                            Ok(server) => Message::ReceivedServerInfo(server),
+                                            Err(_) => Message::ServerInfoFailed,
+                                        }
+                                    }
                                 ),
                                 Task::perform(
                                     {
@@ -228,12 +232,7 @@ impl App {
                                             None => Message::ImageFetchFailed
                                         }
                                     }
-                                ),
-                                Task::sip(
-                                    websocket::connect(websocket_address),
-                                    |event| Message::Websocket(event),
-                                    |_| Message::Websocket(websocket::Event::Disconnected),
-                                ),
+                                )
                             ])
                         }
                     }
@@ -248,7 +247,21 @@ impl App {
                     .for_each(|channel| self.hub.channel_navbar.channels.push(channel));
                 self.hub.chat.channel = self.hub.channel_navbar.channels[0].clone();
                 self.hub.navbar.servers.push(info);
-                self.update(Message::Hub(hub::Message::CloseDialog))
+                let websocket_address =
+                    format!("ws://{}/ws", self.hub.dialog_written_server_address.clone());
+                Task::batch(vec![
+                    Task::sip(
+                        websocket::connect(websocket_address),
+                        |event| Message::Websocket(event),
+                        |_| Message::Websocket(websocket::Event::Disconnected),
+                    ),
+                    self.update(Message::Hub(hub::Message::CloseDialog))
+                ])
+            }
+
+            Message::ServerInfoFailed => {
+                info!("Failed to get server info");
+                Task::none()
             }
             
             Message::ReceivedServerImage(bytes) => {

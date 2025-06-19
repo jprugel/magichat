@@ -101,7 +101,6 @@ impl Hub {
                 );
                 let instruction =
                     Instruction::AddServer(self.dialog_written_server_address.clone());
-                self.open_dialog = false;
                 Action::instruction(instruction)
             }
             Message::CloseDialog => {

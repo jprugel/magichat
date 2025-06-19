@@ -20,7 +20,8 @@ pub fn view(state: &ChannelNavbar) -> Element<Message> {
         .into_iter()
         .fold(column![], |col, channel| {
             col.push(container(
-                button(text(channel.name.clone()))
+                button(text(format!("# {}", channel.name.clone())))
+                    .style(button::secondary)
                     .width(Length::Fill)
                     .on_press(Message::ChannelSelected(channel.name.clone())),
             ))
