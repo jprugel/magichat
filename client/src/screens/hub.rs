@@ -5,8 +5,8 @@ use crate::action::Action;
 use crate::widgets::channel_navbar;
 use crate::widgets::chat;
 use crate::widgets::server_navbar;
+use iced::Element;
 use iced::widget::{column, container, text_input};
-use iced::{Element};
 use iced_dialog::dialog;
 use iced_split::{Split, Strategy};
 use tracing::{debug, info};
@@ -106,27 +106,29 @@ impl Hub {
             Message::CloseDialog => {
                 self.open_dialog = false;
                 Action::none()
-            },
+            }
             Message::Navbar(message) => {
-                let Action { instruction, task: _task } = self.navbar.update(message);
+                let Action {
+                    instruction,
+                    task: _task,
+                } = self.navbar.update(message);
                 if let Some(instruction) = instruction {
                     match instruction {
                         server_navbar::Instruction::SelectServer(server) => {
                             self.chat.server = server;
                             Action::none()
-                        },
+                        }
                         server_navbar::Instruction::AddServer => {
                             self.dialog_written_server_address.clear();
                             self.open_dialog = true;
                             Action::none()
-                        }
-                        //_ => Action::none(),
+                        } //_ => Action::none(),
                     }
-                } else { Action::none() }
-            },
-            Message::ChannelNavbar(
-                             channel_navbar::Message::ChannelSelected(channel),
-                         ) => {
+                } else {
+                    Action::none()
+                }
+            }
+            Message::ChannelNavbar(channel_navbar::Message::ChannelSelected(channel)) => {
                 info!("Selected channel: {}", channel);
                 let test = self
                     .channel_navbar

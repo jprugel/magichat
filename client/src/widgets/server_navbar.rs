@@ -2,16 +2,16 @@
 // 1.) the direct messages tab.
 // 2.) the list of servers the user is connected to.
 // 3.) an add server button.
+use crate::action::Action;
 use dragking::DragEvent;
-use iced::{Alignment};
+use iced::Alignment;
 use iced::Border;
 use iced::Length;
 use iced::border::radius;
 use iced::widget::{button, column, container, svg};
 use iced::{Element, Renderer, Theme};
-use tracing::info;
 use protocol::Server;
-use crate::action::Action;
+use tracing::info;
 
 #[derive(Default)]
 pub struct Navbar {
@@ -67,10 +67,10 @@ impl Navbar {
                         .width(Length::Fill)
                         .height(Length::Fill),
                 )
-                    .width(Length::Fixed(WIDTH))
-                    .height(Length::Fixed(HEIGHT))
-                    .on_press(Message::SelectServer(server.clone()))
-                    .style(style);
+                .width(Length::Fixed(WIDTH))
+                .height(Length::Fixed(HEIGHT))
+                .on_press(Message::SelectServer(server.clone()))
+                .style(style);
 
                 button.into()
             })
@@ -94,11 +94,11 @@ impl Navbar {
             Message::SelectServer(server) => {
                 info!("Selected server: {}", server.name);
                 Action::instruction(Instruction::SelectServer(server))
-            },
+            }
             Message::AddServer => {
                 info!("Adding server");
                 Action::instruction(Instruction::AddServer)
-            },
+            }
             Message::Reorder(drag_event) => {
                 match drag_event {
                     DragEvent::Picked { .. } => {
@@ -116,7 +116,7 @@ impl Navbar {
                     }
                 }
                 Action::none()
-            },
+            }
             Message::SelectSettings => todo!(),
         }
     }

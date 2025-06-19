@@ -13,11 +13,11 @@ use iced::task::Task;
 use iced::widget::container;
 use protocol::{Icon, Server, User, UserMessage};
 use screens::*;
+use tracing::info;
 use uuid::Uuid;
 use widgets::chat::*;
 use widgets::login::Login;
 use widgets::*;
-use tracing::info;
 
 const ICON: &str = "client/assets/magichat_icon.png";
 
@@ -193,50 +193,59 @@ impl App {
                 Task::none()
             }
             Message::Hub(msg) => {
-                let Action { instruction, task: _task } = self.hub.update(msg);
+                let Action {
+                    instruction,
+                    task: _task,
+                } = self.hub.update(msg);
                 if let Some(instruction) = instruction {
                     match instruction {
                         hub::Instruction::AddServer(_server_address) => {
-                            info!("Server address submitted: {}", self.hub.dialog_written_server_address.clone());
+                            info!(
+                                "Server address submitted: {}",
+                                self.hub.dialog_written_server_address.clone()
+                            );
 
                             Task::batch(vec![
                                 Task::perform(
                                     {
-                                        let server_address = self.hub.dialog_written_server_address.clone();
+                                        let server_address =
+                                            self.hub.dialog_written_server_address.clone();
                                         async move { Server::from_url(&server_address).await }
                                     },
-                                    |output| {
-                                        match output {
-                                            Ok(server) => Message::ReceivedServerInfo(server),
-                                            Err(_) => Message::ServerInfoFailed,
-                                        }
-                                    }
+                                    |output| match output {
+                                        Ok(server) => Message::ReceivedServerInfo(server),
+                                        Err(_) => Message::ServerInfoFailed,
+                                    },
                                 ),
                                 Task::perform(
                                     {
                                         info!("Fetching server icon");
-                                        let server_address = format!("http://{}/images/server_icon.png", self.hub.dialog_written_server_address.clone());
+                                        let server_address = format!(
+                                            "http://{}/images/server_icon.png",
+                                            self.hub.dialog_written_server_address.clone()
+                                        );
                                         async move {
                                             match reqwest::get(&server_address).await {
                                                 Ok(response) if response.status().is_success() => {
-                                                    let bytes = response.bytes().await.unwrap_or_default();
+                                                    let bytes =
+                                                        response.bytes().await.unwrap_or_default();
                                                     Some(bytes)
-                                                },
+                                                }
                                                 _ => None,
                                             }
                                         }
                                     },
-                                    |maybe_bytes| {
-                                        match maybe_bytes {
-                                            Some(bytes) => Message::ReceivedServerImage(bytes.into()),
-                                            None => Message::ImageFetchFailed
-                                        }
-                                    }
-                                )
+                                    |maybe_bytes| match maybe_bytes {
+                                        Some(bytes) => Message::ReceivedServerImage(bytes.into()),
+                                        None => Message::ImageFetchFailed,
+                                    },
+                                ),
                             ])
                         }
                     }
-                } else { Task::none() }
+                } else {
+                    Task::none()
+                }
             }
             Message::ReceivedServerInfo(info) => {
                 info!("Received server info: {:?}", info);
@@ -255,7 +264,7 @@ impl App {
                         |event| Message::Websocket(event),
                         |_| Message::Websocket(websocket::Event::Disconnected),
                     ),
-                    self.update(Message::Hub(hub::Message::CloseDialog))
+                    self.update(Message::Hub(hub::Message::CloseDialog)),
                 ])
             }
 
@@ -263,7 +272,7 @@ impl App {
                 info!("Failed to get server info");
                 Task::none()
             }
-            
+
             Message::ReceivedServerImage(bytes) => {
                 info!("Received server icon");
                 self.hub.chat.server.icon = Icon::Image(bytes);
