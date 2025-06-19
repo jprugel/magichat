@@ -261,7 +261,7 @@ impl App {
                 Task::batch(vec![
                     Task::sip(
                         websocket::connect(websocket_address),
-                        |event| Message::Websocket(event),
+                        Message::Websocket,
                         |_| Message::Websocket(websocket::Event::Disconnected),
                     ),
                     self.update(Message::Hub(hub::Message::CloseDialog)),
