@@ -1,11 +1,14 @@
 mod action;
 mod screens;
+mod server_icon;
 mod websocket;
 mod widgets;
 
 use crate::action::Action;
 use crate::screens::hub::Hub;
+use crate::server_icon::get_server_icon;
 use crate::widgets::channel_navbar::ChannelNavbar;
+use async_tungstenite::bytes;
 use iced::Element;
 use iced::Length;
 use iced::alignment::*;
@@ -20,6 +23,7 @@ use widgets::login::Login;
 use widgets::*;
 
 const ICON: &str = "client/assets/magichat_icon.png";
+const FONT_NAME: &str = "JetBrainsMonoNLNerdFont-Regular";
 
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -51,7 +55,7 @@ enum Message {
     Hub(hub::Message),
     ReceivedServerInfo(Server),
     ImageFetchFailed,
-    ReceivedServerImage(Vec<u8>),
+    ReceivedServerImage(reqwest::Url, Vec<u8>),
     ServerInfoFailed,
 }
 
@@ -72,7 +76,7 @@ impl App {
     }
 
     fn settings() -> iced::Settings {
-        let font = iced::Font::with_name("JetBrainsMonoNLNerdFont-Regular");
+        let font = iced::Font::with_name(FONT_NAME);
 
         iced::Settings {
             default_font: font,
@@ -224,19 +228,24 @@ impl App {
                                             "http://{}/images/server_icon.png",
                                             self.hub.dialog_written_server_address.clone()
                                         );
+                                        let address_for_message =
+                                            self.hub.dialog_written_server_address.clone();
                                         async move {
                                             match reqwest::get(&server_address).await {
                                                 Ok(response) if response.status().is_success() => {
                                                     let bytes =
                                                         response.bytes().await.unwrap_or_default();
-                                                    Some(bytes)
+                                                    Some((address_for_message, bytes))
                                                 }
                                                 _ => None,
                                             }
                                         }
                                     },
-                                    |maybe_bytes| match maybe_bytes {
-                                        Some(bytes) => Message::ReceivedServerImage(bytes.into()),
+                                    |maybe_result| match maybe_result {
+                                        Some((address, bytes)) => Message::ReceivedServerImage(
+                                            format!("http://{}", address).parse().unwrap(),
+                                            bytes.into(),
+                                        ),
                                         None => Message::ImageFetchFailed,
                                     },
                                 ),
@@ -249,7 +258,6 @@ impl App {
             }
             Message::ReceivedServerInfo(info) => {
                 info!("Received server info: {:?}", info);
-
                 info.clone()
                     .channel_list
                     .into_iter()
@@ -273,9 +281,16 @@ impl App {
                 Task::none()
             }
 
-            Message::ReceivedServerImage(bytes) => {
+            Message::ReceivedServerImage(url, bytes) => {
                 info!("Received server icon");
-                self.hub.chat.server.icon = Icon::Image(bytes);
+                self.hub.chat.server.icon = Icon::Image(bytes.clone().into());
+                self.hub
+                    .navbar
+                    .servers
+                    .iter_mut()
+                    .find(|f| format!("http://{}", f.url).parse::<reqwest::Url>().unwrap() == url)
+                    .unwrap()
+                    .icon = Icon::Image(bytes.into());
                 Task::none()
             }
             _ => Task::none(),

@@ -17,7 +17,7 @@ pub struct ServerConfig {
 impl ServerConfig {
     pub fn to_addr(&self) -> String {
         format!(
-            "{}{}{}{}:{}",
+            "{}.{}.{}.{}:{}",
             self.host[0], self.host[1], self.host[2], self.host[3], self.port
         )
     }

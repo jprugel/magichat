@@ -3,14 +3,16 @@
 // 2.) the list of servers the user is connected to.
 // 3.) an add server button.
 use crate::action::Action;
+use crate::server_icon::get_server_icon;
 use dragking::DragEvent;
-use iced::Alignment;
 use iced::Border;
 use iced::Length;
+use iced::advanced::image::Handle;
 use iced::border::radius;
-use iced::widget::{button, column, container, svg};
+use iced::widget::{button, column, container, image, svg, text};
+use iced::{Alignment, ContentFit};
 use iced::{Element, Renderer, Theme};
-use protocol::Server;
+use protocol::{Icon, Server};
 use tracing::info;
 
 #[derive(Default)]
@@ -62,11 +64,23 @@ impl Navbar {
             .servers
             .iter()
             .map(|server| {
-                let button = button(
-                    svg(DEFAULT_SERVER_SVG)
-                        .width(Length::Fill)
-                        .height(Length::Fill),
-                )
+                let button = match &server.icon {
+                    Icon::Default => button(
+                        svg(DEFAULT_SERVER_SVG)
+                            .width(Length::Fill)
+                            .height(Length::Fill),
+                    ),
+                    Icon::Svg(path) => button(
+                        svg(DEFAULT_SERVER_SVG)
+                            .width(Length::Fill)
+                            .height(Length::Fill),
+                    ),
+                    Icon::Image(bytes) => {
+                        button(container(image(Handle::from_bytes(bytes.clone()))).clip(true).style(container::bordered_box))
+                    }
+                }
+                .padding(0.)
+                .clip(true)
                 .width(Length::Fixed(WIDTH))
                 .height(Length::Fixed(HEIGHT))
                 .on_press(Message::SelectServer(server.clone()))

@@ -17,3 +17,4 @@ tracing = {  version = "0.1.41" }
 tracing-subscriber = "0.3.19"
 protocol = { path = "../protocol" }
 serde_json = "1.0.140"
+image = "0.25.6"
