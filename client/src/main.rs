@@ -1,14 +1,11 @@
 mod action;
 mod screens;
-mod server_icon;
 mod websocket;
 mod widgets;
 
 use crate::action::Action;
 use crate::screens::hub::Hub;
-use crate::server_icon::get_server_icon;
 use crate::widgets::channel_navbar::ChannelNavbar;
-use async_tungstenite::bytes;
 use iced::Element;
 use iced::Length;
 use iced::alignment::*;

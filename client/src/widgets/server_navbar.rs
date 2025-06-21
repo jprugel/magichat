@@ -3,14 +3,13 @@
 // 2.) the list of servers the user is connected to.
 // 3.) an add server button.
 use crate::action::Action;
-use crate::server_icon::get_server_icon;
 use dragking::DragEvent;
 use iced::Border;
 use iced::Length;
 use iced::advanced::image::Handle;
 use iced::border::radius;
-use iced::widget::{button, column, container, image, svg, text};
-use iced::{Alignment, ContentFit};
+use iced::widget::{button, column, container, image, svg};
+use iced::{Alignment};
 use iced::{Element, Renderer, Theme};
 use protocol::{Icon, Server};
 use tracing::info;
@@ -70,14 +69,16 @@ impl Navbar {
                             .width(Length::Fill)
                             .height(Length::Fill),
                     ),
-                    Icon::Svg(path) => button(
+                    Icon::Svg(_path) => button(
                         svg(DEFAULT_SERVER_SVG)
                             .width(Length::Fill)
                             .height(Length::Fill),
                     ),
-                    Icon::Image(bytes) => {
-                        button(container(image(Handle::from_bytes(bytes.clone()))).clip(true).style(container::bordered_box))
-                    }
+                    Icon::Image(bytes) => button(
+                        container(image(Handle::from_bytes(bytes.clone())))
+                            .clip(true)
+                            .style(container::bordered_box),
+                    ),
                 }
                 .padding(0.)
                 .clip(true)
