@@ -25,7 +25,7 @@ async fn main() {
     let (tx, _) = broadcast::channel::<UserMessage>(100);
     let state = AppState {
         sender: Arc::new(tx),
-        config: load_config("./server/Server.toml").expect("Failed to load config"),
+        config: load_config("./Server.toml").expect("Failed to load config"),
     };
 
     let app = Router::new()
