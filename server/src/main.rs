@@ -31,10 +31,7 @@ async fn main() {
     let app = Router::new()
         .route("/ws", get(websocket::handler))
         .route("/info", get(routes::info::handler))
-        .nest_service(
-            "/images",
-            get_service(ServeDir::new("server/assets/images/")),
-        )
+        .nest_service("/images", get_service(ServeDir::new("./assets/images/")))
         .with_state(state.clone());
 
     let addr = SocketAddr::from((state.config.server.host, state.config.server.port));

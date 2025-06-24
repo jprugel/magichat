@@ -5,4 +5,4 @@ setup:
 
 run:
   just setup
-  docker-compose -f server/compose.yaml up -d
+  docker-compose -f server/compose.yaml up -d --build

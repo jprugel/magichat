@@ -13,6 +13,7 @@ RUN cargo build --bin server --release
 # ---- Runtime stage ----
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y libssl3 ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /app/server/Server.toml /Server.toml
-COPY --from=builder /app/server/target/release/server /bin/server
-CMD ["/bin/server"]
+WORKDIR /app
+COPY --from=builder /app/server/Server.toml ./Server.toml
+COPY --from=builder /app/server/target/release/server ./server
+CMD ["/app/server"]

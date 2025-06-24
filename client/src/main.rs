@@ -11,7 +11,7 @@ use iced::Length;
 use iced::alignment::*;
 use iced::task::Task;
 use iced::widget::container;
-use protocol::{Icon, Server, User, UserMessage};
+use protocol::{Icon, Image, Server, User, UserMessage};
 use screens::*;
 use tracing::info;
 use uuid::Uuid;
@@ -280,17 +280,91 @@ impl App {
 
             Message::ReceivedServerImage(url, bytes) => {
                 info!("Received server icon");
-                self.hub.chat.server.icon = Icon::Image(bytes.clone());
+                let mut image = image::ImageReader::new(std::io::Cursor::new(bytes))
+                    .with_guessed_format()
+                    .unwrap()
+                    .decode()
+                    .unwrap()
+                    .to_rgba8();
+
+                if !has_rounded_corners(&image) {
+                    info!("without rounded corners");
+                    round_corners(&mut image, 10.);
+                }
+
+                let (width, height) = image.dimensions();
+                let protocol_image = Image {
+                    bytes: image.into_raw().to_vec(),
+                    width,
+                    height,
+                };
+
+                self.hub.chat.server.icon = Icon::Image(protocol_image.clone());
                 self.hub
                     .navbar
                     .servers
                     .iter_mut()
-                    .find(|f| format!("http://{}", f.url).parse::<reqwest::Url>().unwrap() == url)
+                    // To Do, needs some extra work on the config on the server.
+                    .find(|_f| {
+                        format!("http://{}", "127.0.0.1:3000")
+                            .parse::<reqwest::Url>()
+                            .unwrap()
+                            == url
+                    })
                     .unwrap()
-                    .icon = Icon::Image(bytes);
+                    .icon = Icon::Image(protocol_image);
                 Task::none()
             }
             _ => Task::none(),
+        }
+    }
+}
+fn has_rounded_corners(rgba: &image::RgbaImage) -> bool {
+    rgba.get_pixel(0, 0).0[3] == 0
+}
+
+// Courtesy of ChatGPT
+fn round_corners(rgba: &mut image::RgbaImage, radius: f32) {
+    let (width, height) = rgba.dimensions();
+
+    let radius = (width as f32 * (radius / 50.)) as u32;
+    let radius_sq = radius * radius;
+    let aa_span = radius / 4;
+
+    for y in 0..height {
+        for x in 0..width {
+            let dist_x = if x < radius {
+                radius - x
+            } else if x >= width - radius {
+                x - (width - radius - 1)
+            } else {
+                0
+            };
+
+            let dist_y = if y < radius {
+                radius - y
+            } else if y >= height - radius {
+                y - (height - radius - 1)
+            } else {
+                0
+            };
+
+            let dist_sq = dist_x * dist_x + dist_y * dist_y;
+
+            if dist_sq > radius_sq {
+                let dist = (dist_sq as f32).sqrt();
+
+                if dist <= (radius + aa_span) as f32 {
+                    let alpha_scale =
+                        1.0 - (dist_sq - radius_sq) as f32 / (aa_span * aa_span) as f32;
+
+                    let pixel = rgba.get_pixel_mut(x, y);
+                    pixel.0[3] = (pixel.0[3] as f32 * alpha_scale) as u8;
+                } else {
+                    let pixel = rgba.get_pixel_mut(x, y);
+                    pixel.0 = [0; 4];
+                }
+            }
         }
     }
 }

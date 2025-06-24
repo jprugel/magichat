@@ -29,7 +29,14 @@ pub enum Icon {
     #[default]
     Default,
     Svg(PathBuf),
-    Image(Vec<u8>),
+    Image(Image),
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Image {
+    pub bytes: Vec<u8>,
+    pub width: u32,
+    pub height: u32,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
