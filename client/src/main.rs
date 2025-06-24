@@ -280,14 +280,14 @@ impl App {
 
             Message::ReceivedServerImage(url, bytes) => {
                 info!("Received server icon");
-                self.hub.chat.server.icon = Icon::Image(bytes.clone().into());
+                self.hub.chat.server.icon = Icon::Image(bytes.clone());
                 self.hub
                     .navbar
                     .servers
                     .iter_mut()
                     .find(|f| format!("http://{}", f.url).parse::<reqwest::Url>().unwrap() == url)
                     .unwrap()
-                    .icon = Icon::Image(bytes.into());
+                    .icon = Icon::Image(bytes);
                 Task::none()
             }
             _ => Task::none(),

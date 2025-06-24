@@ -1,0 +1,30 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: my_server
+    ports:
+      - "3000:3000"  # Expose your server's port
+    environment:
+      DATABASE_URL: postgres://postgres:password@db:5432/mydb
+    depends_on:
+      - database
+    volumes:
+      - ./assets:/app/assets  # Mount assets folder from host
+    restart: unless-stopped
+
+  database:
+    image: postgres:17.5
+    container_name: postgres_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mydb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+volumes:
+  pgdata:

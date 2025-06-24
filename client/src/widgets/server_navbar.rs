@@ -1,4 +1,3 @@
-use std::io::Read;
 // Navbar has 3 main components:
 // 1.) the direct messages tab.
 // 2.) the list of servers the user is connected to.
@@ -68,14 +67,15 @@ impl Navbar {
                     Icon::Default => button(
                         svg(DEFAULT_SERVER_SVG)
                             .width(Length::Fill)
-                            .height(Length::Fill)
-                        ,
-                    ).style(style),
+                            .height(Length::Fill),
+                    )
+                    .style(style),
                     Icon::Svg(_path) => button(
                         svg(DEFAULT_SERVER_SVG)
                             .width(Length::Fill)
                             .height(Length::Fill),
-                    ).style(style),
+                    )
+                    .style(style),
                     Icon::Image(bytes) => {
                         let mut image = image::ImageReader::new(std::io::Cursor::new(bytes))
                             .with_guessed_format()
@@ -103,7 +103,8 @@ impl Navbar {
                             width,
                             height,
                             image.as_raw().to_vec(),
-                        ))).style(transparent)
+                        )))
+                        .style(transparent)
                     }
                 }
                 .padding(0.)
