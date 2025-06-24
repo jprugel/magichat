@@ -1,9 +1,9 @@
 services:
   server:
     build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: my_server
+      context: ..
+      dockerfile: server/Dockerfile
+    container_name: server
     ports:
       - "3000:3000"  # Expose your server's port
     environment:
@@ -28,3 +28,6 @@ services:
       - "5432:5432"
 volumes:
   pgdata:
+networks:
+  appnet:
+    external: true

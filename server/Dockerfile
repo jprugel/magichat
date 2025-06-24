@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Copy only what's needed
 COPY server /app/server
-COPY protocol /app/protocol
+COPY ../protocol /app/protocol
 COPY server/Server.toml /app/server/Server.toml
 
 WORKDIR /app/server
