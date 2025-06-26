@@ -93,7 +93,7 @@ impl App {
             login: Login::default(),
             state: State::Disconnected,
             user: User::default(),
-            hub: hub::Hub {
+            hub: Hub {
                 split_at_sc: 80.,
                 split_at_cc: 300.,
                 navbar: server_navbar::Navbar::default(),
