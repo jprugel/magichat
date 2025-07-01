@@ -134,8 +134,14 @@ impl App {
                     instruction,
                     task: _,
                 } = self.login.update(msg);
-                if let Some(login::Instruction::Login { username }) = instruction {
-                    self.user.username = username;
+                if let Some(login::Instruction::Login {
+                    username,
+                    password: _,
+                }) = &instruction
+                {
+                    self.user.username = username.clone();
+                }
+                if let Some(login::Instruction::Authenticated) = &instruction {
                     self.screen = Screen::Hub;
                 }
                 Task::none()

@@ -74,7 +74,7 @@ impl Hub {
                 &self.dialog_written_server_address
             )
             .on_input(Message::ServerAddressUpdate)
-            .on_submit(Message::ServerAddressSubmit)
+            .on_submit(Message::ServerAddressSubmit),
         ];
 
         dialog(self.open_dialog, container, dialog_content)

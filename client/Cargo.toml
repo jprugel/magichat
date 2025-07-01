@@ -18,3 +18,8 @@ tracing-subscriber = "0.3.19"
 protocol = { path = "../protocol" }
 serde_json = "1.0.140"
 image = "0.25.6"
+fast_qr = { version = "0.13.1", features = ["svg"] }
+base32 = "0.5.1"
+otp-std = "0.2.3"
+lazy_static = "1.5.0"
+rand = "0.9.1"
