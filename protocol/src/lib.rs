@@ -1,6 +1,10 @@
+pub mod user;
+
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use sqlx::{FromRow, Type};
 use uuid::Uuid;
+use crate::user::{Password, UserId, Username};
 
 const ROUTE_INFO: &str = "/info";
 
@@ -64,17 +68,33 @@ pub struct UserMessage {
     pub id: Uuid,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, FromRow)]
 pub struct User {
-    pub username: String,
-    pub icon: Icon,
+    pub username: Username,
+    pub password: Password,
+    pub id: UserId,
+    pub totp_verified: bool,
+    pub icon: bool,
 }
 
 impl Default for User {
     fn default() -> Self {
         Self {
-            username: String::default(),
-            icon: Icon::Default,
+            username: Username::default(),
+            password: Password::default(),
+            id: UserId(String::from(Uuid::new_v4().to_string())),
+            totp_verified: false,
+            icon: false,
         }
     }
+}
+
+pub struct LoginRequest {
+    pub username: String,
+    pub password: String,
+}
+
+struct TotpRequest {
+    token: String,
+    code: String,
 }

@@ -14,7 +14,7 @@ pub fn view(state: &UserMessage) -> Element<Message> {
             horizontal_space().width(7),
             container(column![
                 container(
-                    text(&state.user.username)
+                    text(&*state.user.username)
                         .shaping(Shaping::Advanced)
                         .style(text::success),
                 ),

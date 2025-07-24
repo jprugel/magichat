@@ -2,12 +2,18 @@ mod config;
 pub mod filetype;
 mod routes;
 mod websocket;
+mod database;
+
 use axum::{
     Router,
     routing::{get, get_service},
 };
 use config::*;
-use protocol::UserMessage;
+use protocol::{
+    UserMessage,
+    User
+};
+use database::*;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::broadcast;
@@ -17,6 +23,8 @@ use tower_http::services::ServeDir;
 struct AppState {
     sender: Arc<broadcast::Sender<UserMessage>>,
     config: Config,
+    users: Vec<User>,
+    database: Database,
 }
 
 #[tokio::main]
@@ -26,6 +34,13 @@ async fn main() {
     let state = AppState {
         sender: Arc::new(tx),
         config: load_config("./Server.toml").expect("Failed to load config"),
+        users: Vec::new(),
+        database: database::Database::builder()
+            .pool(5)
+            .url("postgres://postgres:password@database:5432/mydb")
+            .build()
+            .await
+            .unwrap()
     };
 
     let app = Router::new()

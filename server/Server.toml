@@ -10,3 +10,6 @@ channels = [
   "Gaming",
   "Coding Den"
 ]
+
+[database]
+addr = "postgres://jprugel:13875j_P@postgres:5432/database"

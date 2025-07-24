@@ -139,7 +139,7 @@ impl App {
                     password: _,
                 }) = &instruction
                 {
-                    self.user.username = username.clone();
+                    self.user.username = username.clone().into();
                 }
                 if let Some(login::Instruction::Authenticated) = &instruction {
                     self.screen = Screen::Hub;
