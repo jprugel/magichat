@@ -79,10 +79,10 @@ impl UserRepository for Database {
             .bind(user_id)
             .fetch_optional(&self.pool)
             .await
-            .map_err(|e| ReadUserError::new("Failed to create user"))
+            .map_err(|e| ReadUserError::new("Failed to create user".to_string()))
     }
 
-    async fn update_user(&self, request: &UpdateUserRequest) -> Result<User, UpdateUserError> {
+    async fn update_user(&self, request: &UpdateUserRequest) -> Result<Option<User>, UpdateUserError> {
         let UpdateUserRequest { 
             user_id, 
             username, 
@@ -100,10 +100,24 @@ impl UserRepository for Database {
             .bind(user_id)
             .fetch_optional(&self.pool)
             .await
-            .map_err(|e| ReadUserError::new("Failed to create user"))?;
+            .map_err(|e| UpdateUserError::new("Failed to create user".to_string()));
+
+        existing_user
     }
 
-    async fn delete_user(&self, request: &DeleteUserRequest) -> Result<User, DeleteUserError> {
-        todo!()
+    async fn delete_user(&self, request: &DeleteUserRequest) -> Result<Option<User>, DeleteUserError> {
+        let DeleteUserRequest { user_id } = request;
+
+        let user = sqlx::query_as(r#"
+                DELETE FROM users
+                WHERE id = $1
+                RETURNING *
+            "#)
+            .bind(user_id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| DeleteUserError::new("Failed to delete user.".to_string()));
+
+        user
     }
 }

@@ -98,16 +98,28 @@ pub struct DeleteUserRequest {
 pub struct CreateUserError(String);
 pub struct ReadUserError(String);
 
-impl ReadUserError {
-    pub fn new(e: &str) -> ReadUserError {
-        ReadUserError(e.to_string())   
-    }
-}
-
 pub struct UpdateUserError(String);
 pub struct DeleteUserError(String);
 
 impl CreateUserError {
+    pub fn new(message: String) -> Self {
+        Self(message)
+    }
+}
+
+impl ReadUserError {
+    pub fn new(message: String) -> Self {
+        Self(message)
+    }
+}
+
+impl UpdateUserError {
+    pub fn new(message: String) -> Self {
+        Self(message)
+    }
+}
+
+impl DeleteUserError {
     pub fn new(message: String) -> Self {
         Self(message)
     }
@@ -127,12 +139,12 @@ pub trait UserRepository: Clone + Send + Sync + 'static {
     fn update_user(
         &self,
         request: &UpdateUserRequest
-    ) -> impl Future<Output = Result<User, UpdateUserError>> + Send;
+    ) -> impl Future<Output = Result<Option<User>, UpdateUserError>> + Send;
     
     fn delete_user(
         &self,
         request: &DeleteUserRequest
-    ) -> impl Future<Output = Result<User, DeleteUserError>> + Send;
+    ) -> impl Future<Output = Result<Option<User>, DeleteUserError>> + Send;
 }
 
 #[derive(FromRow, Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Type)]
