@@ -1,3 +1,5 @@
+use uuid::Uuid;
+
 struct Channel {
     id: Uuid,
     name: String,
