@@ -13,7 +13,7 @@ pub enum Message {
     ChannelSelected(String),
 }
 
-pub fn view(state: &ChannelNavbar) -> Element<Message> {
+pub fn view(state: &ChannelNavbar) -> Element<'_, Message> {
     state
         .clone()
         .channels

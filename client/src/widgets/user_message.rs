@@ -5,7 +5,7 @@ use protocol::UserMessage;
 
 #[derive(Clone, Debug)]
 pub(crate) enum Message {}
-pub fn view(state: &UserMessage) -> Element<Message> {
+pub fn view(state: &UserMessage) -> Element<'_, Message> {
     let icon = svg("client/assets/user_icon.svg").height(45).width(45);
 
     container(

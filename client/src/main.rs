@@ -108,7 +108,7 @@ impl App {
         (app, task)
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         match self.screen {
             Screen::Login => container(self.login.view().map(Message::Login))
                 .width(Length::Fill)
@@ -136,7 +136,7 @@ impl App {
                 } = self.login.update(msg);
                 if let Some(login::Instruction::Login {
                     username,
-                    password: _,
+                    _password: _,
                 }) = &instruction
                 {
                     self.user.username = username.clone().into();

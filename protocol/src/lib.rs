@@ -1,10 +1,11 @@
 pub mod user;
+pub mod channel;
 
-use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
-use sqlx::{FromRow, Type};
-use uuid::Uuid;
 use crate::user::{Password, UserId, Username};
+use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
+use std::path::PathBuf;
+use uuid::Uuid;
 
 const ROUTE_INFO: &str = "/info";
 
@@ -92,9 +93,4 @@ impl Default for User {
 pub struct LoginRequest {
     pub username: String,
     pub password: String,
-}
-
-struct TotpRequest {
-    token: String,
-    code: String,
 }

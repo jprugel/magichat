@@ -1,19 +1,17 @@
 mod config;
+pub mod database;
 pub mod filetype;
 mod routes;
 mod websocket;
-mod database;
 
+use axum::routing::post;
 use axum::{
     Router,
     routing::{get, get_service},
 };
 use config::*;
-use protocol::{
-    UserMessage,
-    User
-};
 use database::*;
+use protocol::{User, UserMessage};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::broadcast;
@@ -40,12 +38,18 @@ async fn main() {
             .url("postgres://postgres:password@database:5432/mydb")
             .build()
             .await
-            .unwrap()
+            .unwrap(),
     };
+
+    let user_route = post(routes::user::create_user)
+        .get(routes::user::read_user)
+        .delete(routes::user::delete_user)
+        .put(routes::user::update_user);
 
     let app = Router::new()
         .route("/ws", get(websocket::handler))
         .route("/info", get(routes::info::handler))
+        .route("/user", user_route)
         .nest_service("/images", get_service(ServeDir::new("./assets/images/")))
         .with_state(state.clone());
 

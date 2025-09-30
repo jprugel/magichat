@@ -1,17 +1,23 @@
-use std::ops::Deref;
-use serde::{Deserialize, Serialize};
-use sqlx::{ FromRow, Type};
 use crate::{Icon, User};
+use serde::{Deserialize, Serialize};
+use sqlx::{FromRow, Type};
+use std::ops::Deref;
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default, FromRow, Type)]
 #[sqlx(transparent)]
 pub struct Username(String);
 pub struct UsernameError(String);
 
+impl UsernameError {
+    pub fn new(message: String) -> Self {
+        UsernameError(message)
+    }
+}
+
 impl Username {
     fn new(username: String) -> Result<Self, UsernameError> {
         if username.is_empty() {
-            return Err(UsernameError("Username cannot be empty".to_string()));
+            return Err(UsernameError::new("Username cannot be empty".to_string()));
         }
 
         Ok(Username(username))
@@ -38,11 +44,16 @@ impl Deref for Username {
     }
 }
 
-
 #[derive(Clone, Debug, Serialize, Deserialize, Default, FromRow, Type)]
 #[sqlx(transparent)]
 pub struct Password(String);
 pub struct PasswordError(String);
+
+impl PasswordError {
+    pub fn new(message: String) -> Self {
+        PasswordError(message)
+    }
+}
 
 impl Password {
     fn new(password: String) -> Result<Self, PasswordError> {
@@ -74,23 +85,27 @@ impl From<String> for Password {
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct CreateUserRequest {
     pub username: Username,
     pub password: Password,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct ReadUserRequest {
     pub user_id: UserId,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct UpdateUserRequest {
     pub user_id: UserId,
     pub username: Option<Username>,
     pub password: Option<Password>,
     pub totp_verified: Option<bool>,
-    pub icon: Option<Icon>
+    pub icon: Option<Icon>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct DeleteUserRequest {
     pub user_id: UserId,
 }
@@ -128,25 +143,25 @@ impl DeleteUserError {
 pub trait UserRepository: Clone + Send + Sync + 'static {
     fn create_user(
         &self,
-        request: &CreateUserRequest
+        request: &CreateUserRequest,
     ) -> impl Future<Output = Result<User, CreateUserError>> + Send;
-    
+
     fn read_user(
         &self,
-        request: &ReadUserRequest
+        request: &ReadUserRequest,
     ) -> impl Future<Output = Result<Option<User>, ReadUserError>> + Send;
-    
+
     fn update_user(
         &self,
-        request: &UpdateUserRequest
+        request: &UpdateUserRequest,
     ) -> impl Future<Output = Result<Option<User>, UpdateUserError>> + Send;
-    
+
     fn delete_user(
         &self,
-        request: &DeleteUserRequest
+        request: &DeleteUserRequest,
     ) -> impl Future<Output = Result<Option<User>, DeleteUserError>> + Send;
 }
 
-#[derive(FromRow, Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Type)]
+#[derive(FromRow, Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Type, Default)]
 #[sqlx(transparent)]
 pub struct UserId(pub String);

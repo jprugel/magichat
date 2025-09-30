@@ -1,50 +1,11 @@
-use sqlx::{postgres, Error, Pool, Row};
-use sqlx::pool::PoolOptions;
-use sqlx::postgres::{PgPoolOptions, PgRow};
-use protocol::{Icon, User};
-use protocol::user::{CreateUserError, CreateUserRequest, UserRepository, Username, UserId, ReadUserRequest, ReadUserError, UpdateUserRequest, DeleteUserRequest, DeleteUserError, UpdateUserError};
-use sqlx::FromRow;
+use crate::User;
+use crate::database::Database;
+pub use protocol::user::UserRepository;
+use protocol::user::{
+    CreateUserError, CreateUserRequest, DeleteUserError, DeleteUserRequest, ReadUserError,
+    ReadUserRequest, UpdateUserError, UpdateUserRequest, UserId,
+};
 use uuid::Uuid;
-
-#[derive(Clone)]
-pub struct Database {
-    pool: Pool<sqlx::Postgres>,
-}
-
-impl Database {
-    pub(crate) fn builder() -> DatabaseBuilder {
-        DatabaseBuilder::default()
-    }
-}
-
-#[derive(Default)]
-pub struct DatabaseBuilder {
-    connections: u32,
-    url: String,
-}
-
-impl DatabaseBuilder {
-    pub(crate) fn pool(mut self, connections: u32) -> DatabaseBuilder {
-        self.connections = connections;
-        self
-    }
-
-    pub(crate) fn url(mut self, url: &str) -> DatabaseBuilder {
-        self.url = url.to_string();
-        self
-    }
-
-    pub(crate) async fn build(self) -> Result<Database, sqlx::Error> {
-        let pool = PoolOptions::new()
-            .max_connections(self.connections)
-            .connect(&self.url)
-            .await?;
-
-        Ok(Database {
-            pool,
-        })
-    }
-}
 
 impl UserRepository for Database {
     async fn create_user(&self, request: &CreateUserRequest) -> Result<User, CreateUserError> {
@@ -69,7 +30,7 @@ impl UserRepository for Database {
 
     async fn read_user(&self, request: &ReadUserRequest) -> Result<Option<User>, ReadUserError> {
         let ReadUserRequest { user_id } = request;
-        
+
         sqlx::query_as::<_, User>(
             r#"
                 Select id, username as "username: Username", password as "password: Password", totp_verified, icon as "icon: Icon"
@@ -82,15 +43,18 @@ impl UserRepository for Database {
             .map_err(|e| ReadUserError::new("Failed to create user".to_string()))
     }
 
-    async fn update_user(&self, request: &UpdateUserRequest) -> Result<Option<User>, UpdateUserError> {
-        let UpdateUserRequest { 
-            user_id, 
-            username, 
-            password, 
-            totp_verified, 
-            icon 
+    async fn update_user(
+        &self,
+        request: &UpdateUserRequest,
+    ) -> Result<Option<User>, UpdateUserError> {
+        let UpdateUserRequest {
+            user_id,
+            username,
+            password,
+            totp_verified,
+            icon,
         } = request;
-        
+
         let existing_user = sqlx::query_as::<_, User>(
             r#"
                 Select id, username as "username: Username", password as "password: Password", totp_verified, icon as "icon: Icon"
@@ -105,18 +69,23 @@ impl UserRepository for Database {
         existing_user
     }
 
-    async fn delete_user(&self, request: &DeleteUserRequest) -> Result<Option<User>, DeleteUserError> {
+    async fn delete_user(
+        &self,
+        request: &DeleteUserRequest,
+    ) -> Result<Option<User>, DeleteUserError> {
         let DeleteUserRequest { user_id } = request;
 
-        let user = sqlx::query_as(r#"
+        let user = sqlx::query_as(
+            r#"
                 DELETE FROM users
                 WHERE id = $1
                 RETURNING *
-            "#)
-            .bind(user_id)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| DeleteUserError::new("Failed to delete user.".to_string()));
+            "#,
+        )
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|_| DeleteUserError::new("Failed to delete user.".to_string()));
 
         user
     }

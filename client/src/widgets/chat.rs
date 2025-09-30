@@ -19,7 +19,7 @@ pub struct Chat {
 }
 
 impl Chat {
-    pub fn view(&self) -> Element<Message> {
+    pub fn view(&self) -> Element<'_, Message> {
         let title_bar = float(text(self.channel.name.clone()));
         let rule: Rule = horizontal_rule(1);
         let text_log = self.channel.log.iter().fold(column![], |col, msg| {

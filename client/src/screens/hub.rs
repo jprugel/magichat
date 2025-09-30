@@ -49,7 +49,7 @@ pub enum Instruction {
 //const SVG_LOADING: &str = "client/assets/loading.svg";
 
 impl Hub {
-    pub fn view(&self) -> Element<Message> {
+    pub fn view(&self) -> Element<'_, Message> {
         let server_channel_split = Split::new(
             self.navbar.view().map(Message::Navbar),
             channel_navbar::view(&self.channel_navbar).map(Message::ChannelNavbar),

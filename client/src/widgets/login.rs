@@ -1,5 +1,4 @@
 use crate::action::Action;
-use base32::{Alphabet, encode};
 use fast_qr::QRBuilder;
 use fast_qr::convert::svg::SvgBuilder;
 use fast_qr::convert::{Builder, Shape};
@@ -9,7 +8,7 @@ use iced::Theme;
 use iced::border::*;
 use iced::widget::{column, container, svg, text, text_input};
 use otp_std::Totp;
-use otp_std::{Algorithm, Base, Digits, Period, Secret, Skew};
+use otp_std::{Algorithm, Digits, Period, Secret, Skew};
 use rand::RngCore;
 use tracing::info;
 
@@ -30,7 +29,7 @@ pub enum State {
 }
 
 pub enum Instruction {
-    Login { username: String, password: String },
+    Login { username: String, _password: String },
     Authenticated,
 }
 
@@ -44,7 +43,7 @@ pub struct Login {
 }
 
 impl Login {
-    pub fn view(&self) -> Element<Message> {
+    pub fn view(&self) -> Element<'_, Message> {
         let internal = match &self.state {
             State::Input => {
                 let text = container(text("LOGIN").center()).padding(Padding {
@@ -132,7 +131,7 @@ impl Login {
                 self.state = State::QRCode;
                 Action::instruction(Instruction::Login {
                     username: self.username.clone(),
-                    password: self.password.clone(),
+                    _password: self.password.clone(),
                 })
             }
             Message::SubmittedCode => {
