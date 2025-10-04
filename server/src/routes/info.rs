@@ -4,10 +4,15 @@ use axum::Json;
 use axum::http::StatusCode;
 use protocol::{Channel, Icon, Server};
 
-#[axum::debug_handler]
+/// Handles the request for server information.
+///
+/// # OpenAPI
+/// path: /info
+/// method: GET
+/// response: (GuildInfo, StatusCode)
 pub async fn handler(
     axum::extract::State(state): axum::extract::State<AppState>,
-) -> (StatusCode, Json<Server>) {
+) -> impl IntoResponse {
     let icon_path = state.config.info.icon;
     let filetype = get_file_type(&icon_path);
     let icon = match filetype {

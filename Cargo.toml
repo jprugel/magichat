@@ -2,5 +2,17 @@
 resolver = "1"
 members = [
   "client", "protocol",
-  "server",
+  "server", "client", "client",
 ]
+
+[profile]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"
